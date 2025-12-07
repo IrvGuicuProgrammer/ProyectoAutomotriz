@@ -73,8 +73,8 @@ public class GestionUsuariosPanel extends JPanel {
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 new EmptyBorder(8, 12, 8, 12)));
 
-        JButton botonBuscar = crearBotonEstilizado("🔍 Buscar", new Color(30, 60, 114));
-        JButton botonLimpiar = crearBotonEstilizado("🔄 Limpiar", new Color(100, 100, 100));
+        JButton botonBuscar = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
+        JButton botonLimpiar = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
 
         panelBusqueda.add(new JLabel("Buscar usuario:"));
         panelBusqueda.add(campoBusqueda);
@@ -127,10 +127,10 @@ public class GestionUsuariosPanel extends JPanel {
         panel.setBackground(new Color(245, 247, 250));
         panel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton botonAgregar = crearBotonEstilizado("➕ Agregar Usuario", new Color(40, 167, 69));
-        JButton botonEditar = crearBotonEstilizado("✏️ Editar Usuario", new Color(255, 193, 7));
-        JButton botonEliminar = crearBotonEstilizado("🗑️ Eliminar Usuario", new Color(220, 53, 69));
-        JButton botonResetPass = crearBotonEstilizado("🔐 Reset Contraseña", new Color(108, 117, 125));
+        JButton botonAgregar = crearBotonEstilizado("Agregar Usuario", new Color(40, 167, 69));
+        JButton botonEditar = crearBotonEstilizado("Editar Usuario", new Color(255, 193, 7));
+        JButton botonEliminar = crearBotonEstilizado("Eliminar Usuario", new Color(220, 53, 69));
+        JButton botonResetPass = crearBotonEstilizado("Reset Contraseña", new Color(108, 117, 125));
 
         panel.add(botonAgregar);
         panel.add(botonEditar);

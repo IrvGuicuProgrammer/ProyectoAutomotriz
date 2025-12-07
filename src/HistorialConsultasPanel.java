@@ -88,9 +88,9 @@ public class HistorialConsultasPanel extends JPanel {
                         "Personalizado" });
         comboRangoFechas.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        JButton botonBuscar = crearBotonEstilizado("🔍 Buscar", new Color(30, 60, 114));
-        JButton botonLimpiar = crearBotonEstilizado("🔄 Limpiar", new Color(100, 100, 100));
-        JButton botonConsultaAvanzada = crearBotonEstilizado("📊 Consulta Avanzada", new Color(40, 167, 69));
+        JButton botonBuscar = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
+        JButton botonLimpiar = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
+        JButton botonConsultaAvanzada = crearBotonEstilizado("Consulta Avanzada", new Color(40, 167, 69));
 
         panelBusqueda.add(new JLabel("Buscar:"));
         panelBusqueda.add(campoBusqueda);
@@ -153,11 +153,11 @@ public class HistorialConsultasPanel extends JPanel {
         panel.setBackground(new Color(245, 247, 250));
         panel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton botonVerDetalles = crearBotonEstilizado("📋 Ver Detalles", new Color(30, 60, 114));
-        JButton botonGenerarReporte = crearBotonEstilizado("📊 Generar Reporte", new Color(40, 167, 69));
-        JButton botonExportar = crearBotonEstilizado("💾 Exportar Datos", new Color(255, 193, 7));
-        JButton botonLimpiarHistorial = crearBotonEstilizado("🗑️ Limpiar Historial", new Color(220, 53, 69));
-        JButton botonEstadisticas = crearBotonEstilizado("📈 Estadísticas", new Color(111, 66, 193));
+        JButton botonVerDetalles = crearBotonEstilizado("Ver Detalles", new Color(30, 60, 114));
+        JButton botonGenerarReporte = crearBotonEstilizado("Generar Reporte", new Color(40, 167, 69));
+        JButton botonExportar = crearBotonEstilizado("Exportar Datos", new Color(255, 193, 7));
+        JButton botonLimpiarHistorial = crearBotonEstilizado("Limpiar Historial", new Color(220, 53, 69));
+        JButton botonEstadisticas = crearBotonEstilizado("Estadísticas", new Color(111, 66, 193));
 
         panel.add(botonVerDetalles);
         panel.add(botonGenerarReporte);

@@ -79,9 +79,9 @@ public class GestionServiciosPanel extends JPanel {
                 new String[] { "Todos", "Pendiente", "En Proceso", "Completado", "Facturado", "Cancelado" });
         comboFiltroEstado.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        JButton botonBuscar = crearBotonEstilizado("🔍 Buscar", new Color(30, 60, 114));
-        JButton botonLimpiar = crearBotonEstilizado("🔄 Limpiar", new Color(100, 100, 100));
-        JButton botonNuevoServicio = crearBotonEstilizado("➕ Nuevo Servicio", new Color(40, 167, 69));
+        JButton botonBuscar = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
+        JButton botonLimpiar = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
+        JButton botonNuevoServicio = crearBotonEstilizado("Nuevo Servicio", new Color(40, 167, 69));
 
         panelBusqueda.add(new JLabel("Buscar servicio:"));
         panelBusqueda.add(campoBusqueda);
@@ -141,11 +141,11 @@ public class GestionServiciosPanel extends JPanel {
         panel.setBackground(new Color(245, 247, 250));
         panel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton botonDetalles = crearBotonEstilizado("📋 Ver Detalles", new Color(30, 60, 114));
-        JButton botonEditar = crearBotonEstilizado("✏️ Editar Servicio", new Color(255, 193, 7));
-        JButton botonCambiarEstado = crearBotonEstilizado("🔄 Cambiar Estado", new Color(108, 117, 125));
-        JButton botonGenerarFactura = crearBotonEstilizado("🧾 Generar Factura", new Color(40, 167, 69));
-        JButton botonEliminar = crearBotonEstilizado("🗑️ Eliminar", new Color(220, 53, 69));
+        JButton botonDetalles = crearBotonEstilizado("Ver Detalles", new Color(30, 60, 114));
+        JButton botonEditar = crearBotonEstilizado("Editar Servicio", new Color(255, 193, 7));
+        JButton botonCambiarEstado = crearBotonEstilizado("Cambiar Estado", new Color(108, 117, 125));
+        JButton botonGenerarFactura = crearBotonEstilizado("Generar Factura", new Color(40, 167, 69));
+        JButton botonEliminar = crearBotonEstilizado("Eliminar", new Color(220, 53, 69));
 
         panel.add(botonDetalles);
         panel.add(botonEditar);

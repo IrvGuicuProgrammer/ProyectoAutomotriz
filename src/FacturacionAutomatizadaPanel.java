@@ -86,9 +86,9 @@ public class FacturacionAutomatizadaPanel extends JPanel {
                 new String[] { "Todas", "Pendiente", "Pagada", "Vencida", "Cancelada" });
         comboFiltroEstado.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        JButton botonBuscar = crearBotonEstilizado("🔍 Buscar", new Color(30, 60, 114));
-        JButton botonLimpiar = crearBotonEstilizado("🔄 Limpiar", new Color(100, 100, 100));
-        JButton botonNuevaFactura = crearBotonEstilizado("🧾 Nueva Factura", new Color(40, 167, 69));
+        JButton botonBuscar = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
+        JButton botonLimpiar = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
+        JButton botonNuevaFactura = crearBotonEstilizado("Nueva Factura", new Color(40, 167, 69));
 
         panelBusqueda.add(new JLabel("Buscar factura:"));
         panelBusqueda.add(campoBusqueda);
@@ -192,12 +192,12 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         panel.setBackground(new Color(245, 247, 250));
         panel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton botonVerDetalle = crearBotonEstilizado("📋 Ver Detalle", new Color(30, 60, 114));
-        JButton botonGenerarPDF = crearBotonEstilizado("📄 Generar PDF", new Color(40, 167, 69));
-        JButton botonEnviarEmail = crearBotonEstilizado("📧 Enviar Email", new Color(255, 193, 7));
-        JButton botonMarcarPagada = crearBotonEstilizado("✅ Marcar Pagada", new Color(108, 117, 125));
-        JButton botonCancelar = crearBotonEstilizado("❌ Cancelar", new Color(220, 53, 69));
-        JButton botonReporte = crearBotonEstilizado("📊 Reporte Ventas", new Color(111, 66, 193));
+        JButton botonVerDetalle = crearBotonEstilizado("Ver Detalle", new Color(30, 60, 114));
+        JButton botonGenerarPDF = crearBotonEstilizado("Generar PDF", new Color(40, 167, 69));
+        JButton botonEnviarEmail = crearBotonEstilizado("Enviar Email", new Color(255, 193, 7));
+        JButton botonMarcarPagada = crearBotonEstilizado("Marcar Pagada", new Color(108, 117, 125));
+        JButton botonCancelar = crearBotonEstilizado("Cancelar", new Color(220, 53, 69));
+        JButton botonReporte = crearBotonEstilizado("Reporte Ventas", new Color(111, 66, 193));
 
         panel.add(botonVerDetalle);
         panel.add(botonGenerarPDF);

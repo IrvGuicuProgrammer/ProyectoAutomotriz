@@ -81,9 +81,9 @@ public class ControlInventarioPanel extends JPanel {
         comboFiltroCategoria.addItem("Todas");
         comboFiltroCategoria.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        JButton botonBuscar = crearBotonEstilizado("🔍 Buscar", new Color(30, 60, 114));
-        JButton botonLimpiar = crearBotonEstilizado("🔄 Limpiar", new Color(100, 100, 100));
-        JButton botonAgregar = crearBotonEstilizado("➕ Agregar Producto", new Color(40, 167, 69));
+        JButton botonBuscar = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
+        JButton botonLimpiar = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
+        JButton botonAgregar = crearBotonEstilizado("Agregar Producto", new Color(40, 167, 69));
 
         panelBusqueda.add(new JLabel("Buscar producto:"));
         panelBusqueda.add(campoBusqueda);
@@ -187,11 +187,11 @@ public class ControlInventarioPanel extends JPanel {
         panel.setBackground(new Color(245, 247, 250));
         panel.setBorder(new EmptyBorder(20, 0, 0, 0));
 
-        JButton botonAgregarStock = crearBotonEstilizado("📥 Entrada Stock", new Color(40, 167, 69));
-        JButton botonRetirarStock = crearBotonEstilizado("📤 Salida Stock", new Color(255, 193, 7));
-        JButton botonEditar = crearBotonEstilizado("✏️ Editar Producto", new Color(30, 60, 114));
-        JButton botonEliminar = crearBotonEstilizado("🗑️ Eliminar", new Color(220, 53, 69));
-        JButton botonReporte = crearBotonEstilizado("📊 Reporte Stock", new Color(108, 117, 125));
+        JButton botonAgregarStock = crearBotonEstilizado("Entrada Stock", new Color(40, 167, 69));
+        JButton botonRetirarStock = crearBotonEstilizado("Salida Stock", new Color(255, 193, 7));
+        JButton botonEditar = crearBotonEstilizado("Editar Producto", new Color(30, 60, 114));
+        JButton botonEliminar = crearBotonEstilizado("Eliminar", new Color(220, 53, 69));
+        JButton botonReporte = crearBotonEstilizado("Reporte Stock", new Color(108, 117, 125));
 
         panel.add(botonAgregarStock);
         panel.add(botonRetirarStock);
