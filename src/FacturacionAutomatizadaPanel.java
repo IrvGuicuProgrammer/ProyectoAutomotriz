@@ -1,17 +1,13 @@
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.List;
+import java.util.Locale;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.sql.*;
-import java.text.NumberFormat; // Importado para formatear moneda
-import java.util.Locale; // Importado para formatear moneda
 
 public class FacturacionAutomatizadaPanel extends JPanel {
     private JTable tablaFacturas;
@@ -194,23 +190,29 @@ public class FacturacionAutomatizadaPanel extends JPanel {
 
         JButton botonVerDetalle = crearBotonEstilizado("Ver Detalle", new Color(30, 60, 114));
         JButton botonGenerarPDF = crearBotonEstilizado("Generar PDF", new Color(40, 167, 69));
-        JButton botonEnviarEmail = crearBotonEstilizado("Enviar Email", new Color(255, 193, 7));
-        JButton botonMarcarPagada = crearBotonEstilizado("Marcar Pagada", new Color(108, 117, 125));
+        JButton botonEditarFactura = crearBotonEstilizado("Editar Factura", new Color(255, 193, 7)); 
+        
+        // --- CAMBIO: Botón Cambiar Estado (antes Marcar Pagada) ---
+        JButton botonCambiarEstado = crearBotonEstilizado("Cambiar Estado", new Color(23, 162, 184)); // Color cyan/informativo
+        
         JButton botonCancelar = crearBotonEstilizado("Cancelar", new Color(220, 53, 69));
         JButton botonReporte = crearBotonEstilizado("Reporte Ventas", new Color(111, 66, 193));
 
         panel.add(botonVerDetalle);
         panel.add(botonGenerarPDF);
-        panel.add(botonEnviarEmail);
-        panel.add(botonMarcarPagada);
+        panel.add(botonEditarFactura);
+        panel.add(botonCambiarEstado); // Agregado al panel
         panel.add(botonCancelar);
         panel.add(botonReporte);
 
         // Acciones de los botones
         botonVerDetalle.addActionListener(e -> verDetalleFactura());
         botonGenerarPDF.addActionListener(e -> generarPDF());
-        botonEnviarEmail.addActionListener(e -> enviarEmail());
-        botonMarcarPagada.addActionListener(e -> marcarPagada());
+        botonEditarFactura.addActionListener(e -> editarFactura());
+        
+        // --- CAMBIO: Acción cambiar estado ---
+        botonCambiarEstado.addActionListener(e -> cambiarEstadoFactura());
+        
         botonCancelar.addActionListener(e -> cancelarFactura());
         botonReporte.addActionListener(e -> generarReporteVentas());
 
@@ -248,7 +250,200 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         return boton;
     }
 
-    // MÉTODOS PARA FACTURACIÓN
+    // ==================== FUNCIONES PRINCIPALES ====================
+
+    // --- GENERAR PDF ---
+    private void generarPDF() {
+        int filaSeleccionada = tablaFacturas.getSelectedRow();
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione una factura para generar PDF.");
+            return;
+        }
+
+        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+        Factura factura = obtenerFacturaPorId(idFactura);
+
+        if (factura != null) {
+            ReportePDFUtils.generarFacturaPDF(
+                factura.numeroFactura,
+                factura.cliente,
+                factura.vehiculo,
+                factura.fechaEmision,
+                factura.subtotal,
+                factura.iva,
+                factura.total,
+                factura.descripcionServicio != null ? factura.descripcionServicio : "Mantenimiento General"
+            );
+            
+            registrarLogSistema("INFO", "PDF generado para factura: " + factura.numeroFactura);
+        } else {
+            JOptionPane.showMessageDialog(this, "No se pudieron obtener los datos de la factura.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // --- EDITAR FACTURA ---
+    private void editarFactura() {
+        int filaSeleccionada = tablaFacturas.getSelectedRow();
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione una factura para editar.");
+            return;
+        }
+
+        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+        Factura factura = obtenerFacturaPorId(idFactura);
+
+        if (factura == null) {
+            JOptionPane.showMessageDialog(this, "Error al cargar los datos de la factura.");
+            return;
+        }
+
+        JTextField txtFechaVencimiento = new JTextField(factura.fechaVencimiento);
+        JComboBox<String> comboMetodoPago = new JComboBox<>(new String[] { "Efectivo", "Tarjeta", "Transferencia" });
+        comboMetodoPago.setSelectedItem(factura.metodoPago != null ? factura.metodoPago : "Efectivo");
+        JTextArea txtNotas = new JTextArea(factura.notas != null ? factura.notas : "", 3, 25);
+        txtNotas.setLineWrap(true);
+        txtNotas.setWrapStyleWord(true);
+
+        JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        
+        panel.add(new JLabel("Factura N°:"));
+        panel.add(new JLabel(factura.numeroFactura));
+        panel.add(new JLabel("Fecha Vencimiento (YYYY-MM-DD):"));
+        panel.add(txtFechaVencimiento);
+        panel.add(new JLabel("Método de Pago:"));
+        panel.add(comboMetodoPago);
+        panel.add(new JLabel("Notas:"));
+        panel.add(new JScrollPane(txtNotas));
+
+        JScrollPane scrollPane = new JScrollPane(panel);
+        scrollPane.setPreferredSize(new Dimension(450, 250));
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+        int result = JOptionPane.showConfirmDialog(this, scrollPane, 
+                "Editar Factura " + factura.numeroFactura, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String query = "UPDATE facturas SET fecha_vencimiento = ?, metodo_pago = ?, notas = ? WHERE id_factura = ?";
+            
+            int filasAfectadas = DatabaseUtils.ejecutarUpdate(query,
+                    txtFechaVencimiento.getText().trim(),
+                    comboMetodoPago.getSelectedItem().toString(),
+                    txtNotas.getText().trim(),
+                    idFactura);
+
+            if (filasAfectadas > 0) {
+                JOptionPane.showMessageDialog(this, "Factura actualizada correctamente.");
+                registrarLogSistema("INFO", "Factura editada: " + factura.numeroFactura);
+                cargarDatosFacturas();
+            }
+        }
+    }
+
+    // --- NUEVO MÉTODO: CAMBIAR ESTADO FACTURA ---
+    private void cambiarEstadoFactura() {
+        int fila = tablaFacturas.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Seleccione una factura para cambiar su estado.");
+            return;
+        }
+
+        int id = (int) modeloTabla.getValueAt(fila, 0);
+        String estadoActual = (String) modeloTabla.getValueAt(fila, 8); // Columna 8 es 'Estado'
+        String numeroFactura = (String) modeloTabla.getValueAt(fila, 1);
+
+        if ("Cancelada".equals(estadoActual)) {
+            JOptionPane.showMessageDialog(this, "No se puede cambiar el estado de una factura cancelada.", "Acción no permitida", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String[] opciones = {"Pendiente", "Pagada"};
+        String nuevoEstado = (String) JOptionPane.showInputDialog(this, 
+                "Seleccione el nuevo estado para la factura " + numeroFactura + ":",
+                "Cambiar Estado",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                opciones,
+                estadoActual);
+
+        if (nuevoEstado != null && !nuevoEstado.equals(estadoActual)) {
+            DatabaseUtils.ejecutarUpdate("UPDATE facturas SET estado=? WHERE id_factura=?", nuevoEstado, id);
+            
+            registrarLogSistema("INFO", "Estado de factura " + numeroFactura + " cambiado a " + nuevoEstado);
+            JOptionPane.showMessageDialog(this, "Estado actualizado a: " + nuevoEstado);
+            cargarDatosFacturas();
+        }
+    }
+
+    // --- REPORTE DE VENTAS ---
+    private void generarReporteVentas() {
+        mostrarDialogoReporteVentas();
+        registrarLogSistema("INFO", "Reporte de ventas visualizado.");
+    }
+
+    private void mostrarDialogoReporteVentas() {
+        JDialog dialogoReporte = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Reporte de Ventas", true);
+        dialogoReporte.setSize(600, 400);
+        dialogoReporte.setLocationRelativeTo(this);
+        dialogoReporte.setLayout(new BorderLayout());
+
+        JPanel panelTitulo = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        panelTitulo.setBackground(new Color(30, 60, 114));
+        JLabel lblTitulo = new JLabel("Resumen de Ventas por Estado");
+        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitulo.setForeground(Color.WHITE);
+        panelTitulo.add(lblTitulo);
+
+        // Tabla de reporte
+        String[] columnas = { "Estado", "Cantidad de Facturas", "Monto Total" };
+        DefaultTableModel modeloReporte = new DefaultTableModel(columnas, 0);
+        JTable tablaReporte = new JTable(modeloReporte);
+        tablaReporte.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tablaReporte.setRowHeight(25);
+
+        // Cargar datos
+        String query = "SELECT estado, COUNT(*) as 'Cantidad', SUM(total) as 'Total' " +
+                       "FROM facturas GROUP BY estado " +
+                       "UNION ALL " +
+                       "SELECT 'TOTAL GENERAL', COUNT(*), SUM(total) FROM facturas";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("es", "MX"));
+            
+            while (rs.next()) {
+                modeloReporte.addRow(new Object[] {
+                        rs.getString(1),
+                        rs.getInt(2),
+                        currency.format(rs.getDouble(3))
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Botón para exportar este reporte
+        JButton btnExportar = new JButton("Exportar a PDF");
+        btnExportar.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaReporte, "RESUMEN DE VENTAS", "Resumen_Ventas"));
+
+        JButton btnCerrar = new JButton("Cerrar");
+        btnCerrar.addActionListener(e -> dialogoReporte.dispose());
+        
+        JPanel panelBotones = new JPanel();
+        panelBotones.add(btnExportar);
+        panelBotones.add(btnCerrar);
+
+        dialogoReporte.add(panelTitulo, BorderLayout.NORTH);
+        dialogoReporte.add(new JScrollPane(tablaReporte), BorderLayout.CENTER);
+        dialogoReporte.add(panelBotones, BorderLayout.SOUTH);
+
+        dialogoReporte.setVisible(true);
+    }
+
+    // ==================== MÉTODOS DE DATOS ====================
+
     private void cargarDatosFacturas() {
         String query = "SELECT f.id_factura, f.numero_factura, c.nombre as cliente, " +
                 "CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas) as vehiculo, " +
@@ -295,24 +490,15 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         }
 
         query.append(" ORDER BY f.fecha_emision DESC, f.id_factura DESC");
-
-        // --- INICIO DE CORRECCIÓN ---
-        // Registrar la búsqueda en el historial
-        String descripcionLog = "Búsqueda: '" + busqueda + "', Estado: '" + estadoFiltro + "'";
-        registrarConsulta(descripcionLog, "Filtro: " + estadoFiltro, "Búsqueda realizada");
-        // --- FIN DE CORRECCIÓN ---
-
         DatabaseUtils.llenarTablaDesdeConsulta(tablaFacturas, query.toString(), parametros.toArray());
     }
 
     private void generarNuevaFactura() {
-        // Obtener lista de servicios completados sin factura
         java.util.List<String> servicios = obtenerServiciosSinFactura();
 
         if (servicios.isEmpty()) {
             JOptionPane.showMessageDialog(this,
-                    "No hay servicios completados pendientes de facturar.\n" +
-                            "Todos los servicios completados ya tienen factura asociada.",
+                    "No hay servicios completados pendientes de facturar.",
                     "Sin Servicios", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -321,680 +507,136 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         JTextField txtFechaVencimiento = new JTextField(java.time.LocalDate.now().plusDays(30).toString());
         JComboBox<String> comboMetodoPago = new JComboBox<>(new String[] { "Efectivo", "Tarjeta", "Transferencia" });
         JTextArea txtNotas = new JTextArea(3, 25);
-        txtNotas.setLineWrap(true);
-        txtNotas.setWrapStyleWord(true);
-
+        
         JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.add(new JLabel("Servicio:*")); panel.add(comboServicio);
+        panel.add(new JLabel("Vencimiento (YYYY-MM-DD):")); panel.add(txtFechaVencimiento);
+        panel.add(new JLabel("Método de Pago:")); panel.add(comboMetodoPago);
+        panel.add(new JLabel("Notas:")); panel.add(new JScrollPane(txtNotas));
 
-        panel.add(new JLabel("Servicio:*"));
-        panel.add(comboServicio);
-        panel.add(new JLabel("Fecha Vencimiento (YYYY-MM-DD):"));
-        panel.add(txtFechaVencimiento);
-        panel.add(new JLabel("Método de Pago:"));
-        panel.add(comboMetodoPago);
-        panel.add(new JLabel("Notas:"));
-        panel.add(new JScrollPane(txtNotas));
-
-        // Crear un panel contenedor con scroll
-        JScrollPane scrollPane = new JScrollPane(panel);
-        scrollPane.setPreferredSize(new Dimension(500, 200));
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-
-        int result = JOptionPane.showConfirmDialog(this, scrollPane,
-                "Generar Nueva Factura", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, panel, "Generar Nueva Factura", JOptionPane.OK_CANCEL_OPTION);
 
         if (result == JOptionPane.OK_OPTION) {
             String servicioSeleccionado = (String) comboServicio.getSelectedItem();
             int idServicio = obtenerIdServicioDesdeDescripcion(servicioSeleccionado);
-
-            if (idServicio == -1) {
-                JOptionPane.showMessageDialog(this, "Error al obtener el servicio seleccionado.");
-                return;
-            }
-
-            // Obtener datos del servicio para calcular totales
+            
             Servicio servicio = obtenerDatosServicio(idServicio);
-            if (servicio == null) {
-                JOptionPane.showMessageDialog(this, "Error al obtener los datos del servicio.");
-                return;
-            }
+            if (servicio == null) return;
 
-            // Calcular totales
             double subtotal = servicio.costoTotal != null ? servicio.costoTotal : 0.0;
-            double iva = subtotal * 0.16; // 16% IVA
+            double iva = subtotal * 0.16;
             double total = subtotal + iva;
-
-            // Generar número de factura
             String numeroFactura = generarNumeroFactura();
 
-            String query = "INSERT INTO facturas (numero_factura, id_servicio, fecha_emision, " +
-                    "fecha_vencimiento, subtotal, iva, total, estado, metodo_pago, notas) " +
-                    "VALUES (?, ?, CURDATE(), ?, ?, ?, ?, 'Pendiente', ?, ?)";
+            String query = "INSERT INTO facturas (numero_factura, id_servicio, fecha_emision, fecha_vencimiento, subtotal, iva, total, estado, metodo_pago, notas) VALUES (?, ?, CURDATE(), ?, ?, ?, ?, 'Pendiente', ?, ?)";
 
-            int filasAfectadas = DatabaseUtils.ejecutarUpdate(query,
-                    numeroFactura,
-                    idServicio,
-                    txtFechaVencimiento.getText().trim(),
-                    subtotal,
-                    iva,
-                    total,
-                    comboMetodoPago.getSelectedItem().toString(),
-                    txtNotas.getText().trim());
+            int r = DatabaseUtils.ejecutarUpdate(query, numeroFactura, idServicio, txtFechaVencimiento.getText(), subtotal, iva, total, comboMetodoPago.getSelectedItem(), txtNotas.getText());
 
-            if (filasAfectadas > 0) {
-                // Actualizar estado del servicio a "Facturado"
+            if (r > 0) {
                 actualizarEstadoServicio(idServicio, "Facturado");
-
-                // --- INICIO DE CORRECCIÓN ---
-                registrarLogSistema("INFO", "Factura generada: " + numeroFactura + " para servicio ID: " + idServicio
-                        + ". Total: " + total);
-                // --- FIN DE CORRECCIÓN ---
-
-                JOptionPane.showMessageDialog(this,
-                        "Factura generada correctamente.\n" +
-                                "Número de Factura: " + numeroFactura + "\n" +
-                                "Subtotal: $" + String.format("%.2f", subtotal) + "\n" +
-                                "IVA: $" + String.format("%.2f", iva) + "\n" +
-                                "Total: $" + String.format("%.2f", total));
+                JOptionPane.showMessageDialog(this, "Factura generada: " + numeroFactura);
                 cargarDatosFacturas();
-            } else {
-                registrarLogSistema("ERROR", "Error al generar factura para servicio ID: " + idServicio);
             }
         }
     }
 
     private void verDetalleFactura() {
-        int filaSeleccionada = tablaFacturas.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una factura para ver el detalle.");
-            return;
-        }
-
-        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-        Factura factura = obtenerFacturaPorId(idFactura);
-
-        if (factura != null) {
-            String detalles = String.format(
-                    "ID Factura: %d\n" +
-                            "Número: %s\n" +
-                            "Cliente: %s\n" +
-                            "Vehículo: %s\n" +
-                            "Fecha Emisión: %s\n" +
-                            "Fecha Vencimiento: %s\n" +
-                            "Estado: %s\n" +
-                            "Método Pago: %s\n" +
-                            "Subtotal: $%.2f\n" +
-                            "IVA: $%.2f\n" +
-                            "Total: $%.2f\n" +
-                            "Notas: %s\n\n" +
-                            "Servicio Asociado:\n%s",
-                    factura.idFactura, factura.numeroFactura, factura.cliente, factura.vehiculo,
-                    factura.fechaEmision, factura.fechaVencimiento, factura.estado,
-                    factura.metodoPago != null ? factura.metodoPago : "No especificado",
-                    factura.subtotal, factura.iva, factura.total,
-                    factura.notas != null ? factura.notas : "Ninguna",
-                    factura.descripcionServicio);
-
-            JOptionPane.showMessageDialog(this, detalles, "Detalles de Factura", JOptionPane.INFORMATION_MESSAGE);
-
-            // --- INICIO DE CORRECCIÓN ---
-            registrarLogSistema("INFO",
-                    "Consulta detalle factura ID: " + idFactura + " (N°: " + factura.numeroFactura + ")");
-            // --- FIN DE CORRECCIÓN ---
-        }
-    }
-
-    private void generarPDF() {
-        int filaSeleccionada = tablaFacturas.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una factura para generar PDF.");
-            return;
-        }
-
-        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-        String numeroFactura = (String) modeloTabla.getValueAt(filaSeleccionada, 1);
-
-        registrarLogSistema("INFO",
-                "Generación de PDF solicitada para factura ID: " + idFactura + " (N°: " + numeroFactura + ")");
-
-        // TODO: Implementar la generación real de PDF aquí.
-        // 1. Añadir una librería de PDF a tu proyecto (ej. iText 7 o Apache PDFBox).
-        // Maven: <dependency>
-        // <groupId>com.itextpdf</groupId>
-        // <artifactId>itext7-core</artifactId>
-        // <version>7.1.15</version> // </dependency>
-        // 2. Obtener los datos completos de la factura (usando
-        // obtenerFacturaPorId(idFactura)).
-        // 3. Obtener los datos del cliente (nombre, dirección, RFC) de la tabla
-        // 'clientes'.
-        // 4. Obtener los detalles del servicio (productos, mano de obra) de
-        // 'detalles_servicio' y 'servicios'.
-        // 5. Usar la librería para crear un nuevo documento PDF.
-        // 6. Diseñar el layout: Añadir logo, datos del taller, datos del cliente, tabla
-        // de conceptos, totales (subtotal, IVA, total).
-        // 7. Guardar el archivo PDF en el disco (ej. "C:/Facturas/FAC-2024-001.pdf").
-        // 8. Opcional: Abrir el PDF automáticamente.
-
-        JOptionPane.showMessageDialog(this,
-                "Generando PDF para factura: " + numeroFactura + "\n\n" +
-                        "Esta funcionalidad aún no está implementada.\n" +
-                        "Se requiere la librería iText o PDFBox.",
-                "Generar PDF", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void enviarEmail() {
-        int filaSeleccionada = tablaFacturas.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una factura para enviar por email.");
-            return;
-        }
-
-        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-        String numeroFactura = (String) modeloTabla.getValueAt(filaSeleccionada, 1);
-        String cliente = (String) modeloTabla.getValueAt(filaSeleccionada, 2);
-
-        // Obtener email del cliente
-        String emailCliente = obtenerEmailCliente(cliente);
-
-        if (emailCliente == null || emailCliente.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "El cliente " + cliente + " no tiene un email registrado.\n" +
-                            "No se puede enviar la factura por email.",
-                    "Email No Disponible", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        registrarLogSistema("INFO", "Envío de email solicitado para factura ID: " + idFactura + " (N°: " + numeroFactura
-                + ") a: " + emailCliente);
-
-        // TODO: Implementar el envío real de email aquí.
-        // 1. Añadir la API JavaMail a tu proyecto.
-        // Maven: <dependency>
-        // <groupId>com.sun.mail</groupId>
-        // <artifactId>javax.mail</artifactId>
-        // <version>1.6.2</version>
-        // </dependency>
-        // 2. Configurar las propiedades (Properties) con tu servidor SMTP (ej.
-        // "smtp.gmail.com"), puerto (587), y autenticación (TLS).
-        // 3. Crear una Sesión (Session) con un autenticador (Authenticator) usando tu
-        // email y contraseña.
-        // 4. (Primero, debes generar el PDF usando la lógica de generarPDF()).
-        // 5. Crear un MimeMessage.
-        // 6. Crear un MimeBodyPart para el texto del email.
-        // 7. Crear un MimeBodyPart para el archivo adjunto (el PDF).
-        // 8. Agregar ambas partes a un MimeMultipart.
-        // 9. Establecer el contenido del mensaje (setMessage.setContent(multipart)).
-        // 10. Enviar el mensaje (Transport.send(message)).
-        // NOTA: Es crucial manejar la contraseña de tu email de forma segura (no
-        // hardcodearla).
-
-        JOptionPane.showMessageDialog(this,
-                "Enviando factura " + numeroFactura + " a: " + emailCliente + "\n\n" +
-                        "Esta funcionalidad aún no está implementada.\n" +
-                        "Se requiere la API JavaMail y un PDF generado.",
-                "Enviar Email", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    private void marcarPagada() {
-        int filaSeleccionada = tablaFacturas.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una factura para marcar como pagada.");
-            return;
-        }
-
-        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-        String numeroFactura = (String) modeloTabla.getValueAt(filaSeleccionada, 1);
-        String estadoActual = (String) modeloTabla.getValueAt(filaSeleccionada, 8);
-
-        if ("Pagada".equals(estadoActual)) {
-            JOptionPane.showMessageDialog(this, "La factura ya está marcada como pagada.");
-            return;
-        }
-
-        int confirmacion = JOptionPane.showConfirmDialog(this,
-                "¿Está seguro de marcar la factura " + numeroFactura + " como PAGADA?",
-                "Confirmar Pago", JOptionPane.YES_NO_OPTION);
-
-        if (confirmacion == JOptionPane.YES_OPTION) {
-            String query = "UPDATE facturas SET estado = 'Pagada' WHERE id_factura = ?";
-            int resultado = DatabaseUtils.ejecutarUpdate(query, idFactura);
-            if (resultado > 0) {
-                JOptionPane.showMessageDialog(this, "Factura marcada como pagada correctamente.");
-
-                // --- INICIO DE CORRECCIÓN ---
-                registrarLogSistema("INFO",
-                        "Factura marcada como PAGADA. ID: " + idFactura + " (N°: " + numeroFactura + ")");
-                // --- FIN DE CORRECCIÓN ---
-
-                cargarDatosFacturas();
-            } else {
-                registrarLogSistema("ERROR", "Error al marcar como PAGADA factura ID: " + idFactura);
-            }
+        int fila = tablaFacturas.getSelectedRow();
+        if (fila == -1) return;
+        int id = (int) modeloTabla.getValueAt(fila, 0);
+        Factura f = obtenerFacturaPorId(id);
+        if (f != null) {
+            String msg = String.format("Factura: %s\nCliente: %s\nTotal: $%.2f\nEstado: %s\nNotas: %s", 
+                f.numeroFactura, f.cliente, f.total, f.estado, f.notas);
+            JOptionPane.showMessageDialog(this, msg, "Detalle", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
     private void cancelarFactura() {
-        int filaSeleccionada = tablaFacturas.getSelectedRow();
-        if (filaSeleccionada == -1) {
-            JOptionPane.showMessageDialog(this, "Seleccione una factura para cancelar.");
-            return;
-        }
-
-        int idFactura = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-        String numeroFactura = (String) modeloTabla.getValueAt(filaSeleccionada, 1);
-        String estadoActual = (String) modeloTabla.getValueAt(filaSeleccionada, 8);
-
-        if ("Cancelada".equals(estadoActual)) {
-            JOptionPane.showMessageDialog(this, "La factura ya está cancelada.");
-            return;
-        }
-
-        if ("Pagada".equals(estadoActual)) {
-            JOptionPane.showMessageDialog(this,
-                    "No se puede cancelar una factura que ya ha sido pagada.",
-                    "Factura Pagada", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        JTextArea txtMotivo = new JTextArea(3, 25);
-        txtMotivo.setLineWrap(true);
-        txtMotivo.setWrapStyleWord(true);
-
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panel.add(new JLabel("Motivo de cancelación:"), BorderLayout.NORTH);
-        panel.add(new JScrollPane(txtMotivo), BorderLayout.CENTER);
-
-        int result = JOptionPane.showConfirmDialog(this, panel,
-                "Cancelar Factura " + numeroFactura, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION) {
-            String motivo = txtMotivo.getText().trim();
-            if (motivo.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Debe especificar un motivo para la cancelación.");
-                return;
-            }
-
-            String query = "UPDATE facturas SET estado = 'Cancelada', notas = CONCAT(IFNULL(notas, ''), '\nCANCELADA - Motivo: ', ?) WHERE id_factura = ?";
-            int resultado = DatabaseUtils.ejecutarUpdate(query, motivo, idFactura);
-            if (resultado > 0) {
-                JOptionPane.showMessageDialog(this, "Factura cancelada correctamente.");
-
-                // --- INICIO DE CORRECCIÓN ---
-                registrarLogSistema("WARNING",
-                        "Factura CANCELADA. ID: " + idFactura + " (N°: " + numeroFactura + "). Motivo: " + motivo);
-                // --- FIN DE CORRECCIÓN ---
-
-                cargarDatosFacturas();
-            } else {
-                registrarLogSistema("ERROR", "Error al CANCELAR factura ID: " + idFactura);
-            }
+        int fila = tablaFacturas.getSelectedRow();
+        if (fila == -1) return;
+        int id = (int) modeloTabla.getValueAt(fila, 0);
+        if (JOptionPane.showConfirmDialog(this, "¿Cancelar factura?", "Confirmar", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            DatabaseUtils.ejecutarUpdate("UPDATE facturas SET estado='Cancelada' WHERE id_factura=?", id);
+            cargarDatosFacturas();
         }
     }
 
-    private void generarReporteVentas() {
-        // --- INICIO DE CORRECCIÓN ---
-        registrarLogSistema("INFO", "Generación de reporte de ventas solicitada.");
-        // Se llama al nuevo método que muestra el diálogo.
-        mostrarDialogoReporteVentas();
-        // --- FIN DE CORRECCIÓN ---
-    }
+    // ==================== MÉTODOS AUXILIARES DB ====================
 
-    /**
-     * --- INICIO DE NUEVO MÉTODO ---
-     * Muestra un diálogo modal con un resumen de las ventas por estado.
-     */
-    private void mostrarDialogoReporteVentas() {
-        // 1. Crear el diálogo
-        JDialog dialogoReporte = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Reporte de Ventas", true);
-        dialogoReporte.setSize(500, 350);
-        dialogoReporte.setLocationRelativeTo(this);
-        dialogoReporte.setLayout(new BorderLayout());
-
-        // 2. Crear el panel de título
-        JPanel panelTitulo = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        panelTitulo.setBackground(new Color(30, 60, 114));
-        JLabel lblTitulo = new JLabel("Resumen de Ventas por Estado");
-        lblTitulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblTitulo.setForeground(Color.WHITE);
-        panelTitulo.add(lblTitulo);
-        panelTitulo.setBorder(new EmptyBorder(10, 10, 10, 10));
-
-        // 3. Crear la tabla para los datos
-        String[] columnas = { "Estado", "Cantidad de Facturas", "Monto Total" };
-        DefaultTableModel modeloReporte = new DefaultTableModel(columnas, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        JTable tablaReporte = new JTable(modeloReporte);
-        tablaReporte.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tablaReporte.setRowHeight(25);
-
-        // 4. Llenar la tabla con datos reales
-        String query = "SELECT estado, " +
-                "COUNT(*) as 'Cantidad', " +
-                "SUM(total) as 'Total' " +
-                "FROM facturas GROUP BY estado " +
-                "UNION ALL " +
-                "SELECT 'TOTAL (Pagado+Pendiente)', COUNT(*), SUM(total) " +
-                "FROM facturas WHERE estado IN ('Pagada', 'Pendiente')";
-
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-        NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("es", "MX"));
-
-        try {
-            conn = DatabaseConnection.getConnection();
-            stmt = conn.prepareStatement(query);
-            rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                String estado = rs.getString("estado");
-                int cantidad = rs.getInt("Cantidad");
-                double total = rs.getDouble("Total");
-
-                modeloReporte.addRow(new Object[] {
-                        estado,
-                        cantidad,
-                        formatter.format(total) // Formatear como moneda
-                });
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al generar reporte: " + e.getMessage());
-        } finally {
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        }
-
-        // 5. Botón de cerrar
-        JButton btnCerrar = new JButton("Cerrar");
-        btnCerrar.addActionListener(e -> dialogoReporte.dispose());
-        JPanel panelBoton = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        panelBoton.setBorder(new EmptyBorder(10, 10, 10, 10));
-        panelBoton.add(btnCerrar);
-
-        // 6. Añadir componentes al diálogo
-        dialogoReporte.add(panelTitulo, BorderLayout.NORTH);
-        dialogoReporte.add(new JScrollPane(tablaReporte), BorderLayout.CENTER);
-        dialogoReporte.add(panelBoton, BorderLayout.SOUTH);
-
-        // 7. Mostrar diálogo
-        dialogoReporte.setVisible(true);
-    }
-    /**
-     * --- FIN DE NUEVO MÉTODO ---
-     */
-
-    // --- INICIO DE MÉTODOS DE LOGGING ---
-
-    /**
-     * Registra una acción en la tabla logs_sistema.
-     * 
-     * @param tipoLog     Tipo de log (INFO, ERROR, WARNING, DEBUG)
-     * @param descripcion Descripción de la acción realizada
-     */
-    private void registrarLogSistema(String tipoLog, String descripcion) {
-        // FIXME: El ID de usuario está hardcodeado.
-        // En una implementación ideal, se obtendría de un objeto Sesion.
-        int idUsuario = 1; // Usamos 1 (admin) por defecto.
-
-        String query = "INSERT INTO logs_sistema (tipo, modulo, descripcion, id_usuario) " +
-                "VALUES (?, ?, ?, ?)";
-
-        String tipoValido = tipoLog.toUpperCase();
-        if (!java.util.Arrays.asList("INFO", "ERROR", "WARNING", "DEBUG").contains(tipoValido)) {
-            tipoValido = "INFO"; // Default a INFO si no es válido
-        }
-
-        DatabaseUtils.ejecutarUpdate(query,
-                tipoValido,
-                "Facturacion", // Módulo de Facturación
-                descripcion,
-                idUsuario);
-    }
-
-    /**
-     * Registra una búsqueda en la tabla historial_consultas.
-     * 
-     * @param descripcion Descripción de la búsqueda
-     * @param entidad     Entidad consultada (e.j., Filtro: Facturas)
-     * @param resultado   Resultado de la búsqueda
-     */
-    private void registrarConsulta(String descripcion, String entidad, String resultado) {
-        // FIXME: El ID de usuario está hardcodeado.
-        int idUsuario = 1; // Usamos 1 (admin) por defecto.
-
-        String query = "INSERT INTO historial_consultas (tipo_consulta, descripcion, entidad_consultada, id_usuario, detalles, resultado) "
-                +
-                "VALUES ('Facturas', ?, ?, ?, 'Consulta desde sistema', ?)";
-
-        DatabaseUtils.ejecutarUpdate(query, descripcion, entidad, idUsuario, resultado);
-    }
-
-    // --- FIN DE MÉTODOS DE LOGGING ---
-
-    // MÉTODOS AUXILIARES
     private java.util.List<String> obtenerServiciosSinFactura() {
-        java.util.List<String> servicios = new java.util.ArrayList<>();
-        String query = "SELECT s.id_servicio, CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas, ' - ', c.nombre, ' - ', s.descripcion_servicio) as descripcion "
-                +
-                "FROM servicios s " +
-                "INNER JOIN vehiculos v ON s.id_vehiculo = v.id_vehiculo " +
-                "INNER JOIN clientes c ON v.id_cliente = c.id_cliente " +
-                "LEFT JOIN facturas f ON s.id_servicio = f.id_servicio " +
-                "WHERE s.estado = 'Completado' AND f.id_factura IS NULL " +
-                "ORDER BY s.fecha_inicio DESC";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                servicios.add(rs.getString("descripcion"));
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar servicios: " + e.getMessage());
-        }
-
-        return servicios;
+        java.util.List<String> list = new java.util.ArrayList<>();
+        try (Connection c = DatabaseConnection.getConnection();
+             Statement s = c.createStatement();
+             ResultSet rs = s.executeQuery("SELECT CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas, ' - ', c.nombre, ' - ', s.descripcion_servicio) FROM servicios s JOIN vehiculos v ON s.id_vehiculo=v.id_vehiculo JOIN clientes c ON v.id_cliente=c.id_cliente LEFT JOIN facturas f ON s.id_servicio=f.id_servicio WHERE s.estado='Completado' AND f.id_factura IS NULL")) {
+            while (rs.next()) list.add(rs.getString(1));
+        } catch (Exception e) { e.printStackTrace(); }
+        return list;
     }
 
-    private int obtenerIdServicioDesdeDescripcion(String descripcion) {
-        // La descripción tiene formato: "Marca Modelo - Placas - Cliente - Descripción
-        // Servicio"
-        String[] partes = descripcion.split(" - ");
-        if (partes.length < 4)
-            return -1;
-
-        String placas = partes[1];
-        String query = "SELECT s.id_servicio FROM servicios s " +
-                "INNER JOIN vehiculos v ON s.id_vehiculo = v.id_vehiculo " +
-                "WHERE v.placas = ? AND s.estado = 'Completado' " +
-                "ORDER BY s.fecha_inicio DESC LIMIT 1";
-        int idServicio = -1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, placas);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                idServicio = rs.getInt("id_servicio");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return idServicio;
+    private int obtenerIdServicioDesdeDescripcion(String desc) {
+        String placas = desc.split(" - ")[1];
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT s.id_servicio FROM servicios s JOIN vehiculos v ON s.id_vehiculo=v.id_vehiculo WHERE v.placas=? AND s.estado='Completado' LIMIT 1")) {
+            ps.setString(1, placas);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt(1);
+        } catch (Exception e) { e.printStackTrace(); }
+        return -1;
     }
 
-    private Servicio obtenerDatosServicio(int idServicio) {
-        String query = "SELECT costo_total FROM servicios WHERE id_servicio = ?";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, idServicio);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                Servicio servicio = new Servicio();
-                servicio.costoTotal = rs.getObject("costo_total") != null ? rs.getDouble("costo_total") : null;
-                DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-                return servicio;
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+    private Servicio obtenerDatosServicio(int id) {
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement("SELECT costo_total FROM servicios WHERE id_servicio=?")) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) { Servicio s = new Servicio(); s.costoTotal = rs.getDouble(1); return s; }
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
     private String generarNumeroFactura() {
-        // Obtener la serie desde la configuración
-        String serie = "FAC-2024-"; // Por defecto
-        String queryConfig = "SELECT serie_facturas FROM configuracion_sistema LIMIT 1";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(queryConfig);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                serie = rs.getString("serie_facturas");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        // Obtener el último número de factura
-        String queryUltimo = "SELECT numero_factura FROM facturas WHERE numero_factura LIKE ? ORDER BY id_factura DESC LIMIT 1";
-        int siguienteNumero = 1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(queryUltimo);
-            stmt.setString(1, serie + "%");
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                String ultimoNumero = rs.getString("numero_factura");
-                String numeroStr = ultimoNumero.substring(serie.length());
-                siguienteNumero = Integer.parseInt(numeroStr) + 1;
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return serie + String.format("%03d", siguienteNumero);
+        return "FAC-" + System.currentTimeMillis() % 10000;
     }
 
-    private void actualizarEstadoServicio(int idServicio, String estado) {
-        String query = "UPDATE servicios SET estado = ? WHERE id_servicio = ?";
-        DatabaseUtils.ejecutarUpdate(query, estado, idServicio);
+    private void actualizarEstadoServicio(int id, String estado) {
+        DatabaseUtils.ejecutarUpdate("UPDATE servicios SET estado=? WHERE id_servicio=?", estado, id);
     }
 
-    private Factura obtenerFacturaPorId(int idFactura) {
-        String query = "SELECT f.*, c.nombre as cliente, " +
-                "CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas) as vehiculo, " +
-                "s.descripcion_servicio " +
-                "FROM facturas f " +
-                "INNER JOIN servicios s ON f.id_servicio = s.id_servicio " +
-                "INNER JOIN vehiculos v ON s.id_vehiculo = v.id_vehiculo " +
-                "INNER JOIN clientes c ON v.id_cliente = c.id_cliente " +
-                "WHERE f.id_factura = ?";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, idFactura);
-            ResultSet rs = stmt.executeQuery();
-
+    private Factura obtenerFacturaPorId(int id) {
+        String sql = "SELECT f.*, c.nombre, CONCAT(v.marca, ' ', v.modelo) as vehiculo, s.descripcion_servicio FROM facturas f JOIN servicios s ON f.id_servicio=s.id_servicio JOIN vehiculos v ON s.id_vehiculo=v.id_vehiculo JOIN clientes c ON v.id_cliente=c.id_cliente WHERE f.id_factura=?";
+        try (Connection c = DatabaseConnection.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                Factura factura = new Factura();
-                factura.idFactura = rs.getInt("id_factura");
-                factura.numeroFactura = rs.getString("numero_factura");
-                factura.cliente = rs.getString("cliente");
-                factura.vehiculo = rs.getString("vehiculo");
-                factura.fechaEmision = rs.getString("fecha_emision");
-                factura.fechaVencimiento = rs.getString("fecha_vencimiento");
-                factura.estado = rs.getString("estado");
-                factura.metodoPago = rs.getString("metodo_pago");
-                factura.subtotal = rs.getDouble("subtotal");
-                factura.iva = rs.getDouble("iva");
-                factura.total = rs.getDouble("total");
-                factura.notas = rs.getString("notas");
-                factura.descripcionServicio = rs.getString("descripcion_servicio");
-
-                DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-                return factura;
+                Factura f = new Factura();
+                f.numeroFactura = rs.getString("numero_factura");
+                f.cliente = rs.getString("nombre");
+                f.vehiculo = rs.getString("vehiculo");
+                f.fechaEmision = rs.getString("fecha_emision");
+                f.fechaVencimiento = rs.getString("fecha_vencimiento");
+                f.metodoPago = rs.getString("metodo_pago");
+                f.subtotal = rs.getDouble("subtotal");
+                f.iva = rs.getDouble("iva");
+                f.total = rs.getDouble("total");
+                f.estado = rs.getString("estado");
+                f.notas = rs.getString("notas");
+                f.descripcionServicio = rs.getString("descripcion_servicio");
+                return f;
             }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
+        } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
 
-    private String obtenerEmailCliente(String nombreCliente) {
-        String query = "SELECT email FROM clientes WHERE nombre = ?";
-        String email = null;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, nombreCliente);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                email = rs.getString("email");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return email;
+    private void registrarLogSistema(String tipo, String msg) {
+        System.out.println("[LOG " + tipo + "]: " + msg);
     }
 
-    // Clases auxiliares
-    private static class Servicio {
-        Double costoTotal;
-    }
-
-    private static class Factura {
-        int idFactura;
-        String numeroFactura;
-        String cliente;
-        String vehiculo;
-        String fechaEmision;
-        String fechaVencimiento;
-        String estado;
-        String metodoPago;
-        double subtotal;
-        double iva;
-        double total;
-        String notas;
-        String descripcionServicio;
+    // Clases internas
+    private static class Servicio { Double costoTotal; }
+    private static class Factura { 
+        String numeroFactura, cliente, vehiculo, fechaEmision, fechaVencimiento, metodoPago, estado, notas, descripcionServicio; 
+        double subtotal, iva, total; 
     }
 }

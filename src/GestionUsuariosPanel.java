@@ -3,7 +3,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 
-// Importación de jBCrypt (asegúrate de que el JAR esté en tu proyecto)
+// Importación de jBCrypt (asegúrate de tener la librería en tu classpath)
 import org.mindrot.jbcrypt.BCrypt;
 
 public class GestionUsuariosPanel extends JPanel {
@@ -140,7 +140,7 @@ public class GestionUsuariosPanel extends JPanel {
         // Acciones de los botones
         botonAgregar.addActionListener(e -> agregarUsuario());
         botonEditar.addActionListener(e -> editarUsuario());
-        botonEliminar.addActionListener(e -> eliminarUsuario()); // <-- ESTE MÉTODO CAMBIA
+        botonEliminar.addActionListener(e -> eliminarUsuario());
         botonResetPass.addActionListener(e -> resetContrasena());
 
         return panel;
@@ -204,12 +204,13 @@ public class GestionUsuariosPanel extends JPanel {
     }
 
     private void agregarUsuario() {
-        // (Este método se queda igual que en la respuesta anterior, con BCrypt)
         JTextField txtUsuario = new JTextField();
         JTextField txtNombre = new JTextField();
         JPasswordField txtPassword = new JPasswordField();
-        JComboBox<String> comboRol = new JComboBox<>(
-                new String[] { "Administrador", "Supervisor", "Técnico", "Empleado" });
+        
+        // --- SOLO 2 ROLES PERMITIDOS ---
+        JComboBox<String> comboRol = new JComboBox<>(new String[] { "Administrador", "Empleado" });
+        
         JTextField txtEmail = new JTextField();
         JComboBox<String> comboEstado = new JComboBox<>(new String[] { "Activo", "Inactivo" });
 
@@ -263,7 +264,6 @@ public class GestionUsuariosPanel extends JPanel {
     }
 
     private void editarUsuario() {
-        // (Este método se queda igual, no hay cambios)
         int filaSeleccionada = tablaUsuarios.getSelectedRow();
         if (filaSeleccionada == -1) {
             JOptionPane.showMessageDialog(this, "Seleccione un usuario para editar.");
@@ -279,9 +279,11 @@ public class GestionUsuariosPanel extends JPanel {
 
         JTextField txtUsuario = new JTextField(usuarioActual);
         JTextField txtNombre = new JTextField(nombreActual);
-        JComboBox<String> comboRol = new JComboBox<>(
-                new String[] { "Administrador", "Supervisor", "Técnico", "Empleado" });
+        
+        // --- SOLO 2 ROLES PERMITIDOS ---
+        JComboBox<String> comboRol = new JComboBox<>(new String[] { "Administrador", "Empleado" });
         comboRol.setSelectedItem(rolActual);
+        
         JTextField txtEmail = new JTextField(emailActual);
         JComboBox<String> comboEstado = new JComboBox<>(new String[] { "Activo", "Inactivo" });
         comboEstado.setSelectedItem(estadoActual);
@@ -320,7 +322,6 @@ public class GestionUsuariosPanel extends JPanel {
         }
     }
 
-    // --- MÉTODO MODIFICADO ---
     private void eliminarUsuario() {
         int filaSeleccionada = tablaUsuarios.getSelectedRow();
         if (filaSeleccionada == -1) {
@@ -331,6 +332,7 @@ public class GestionUsuariosPanel extends JPanel {
         int idUsuario = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
         String nombreUsuario = (String) modeloTabla.getValueAt(filaSeleccionada, 2);
 
+        // Validación para no eliminar al Admin principal
         if (idUsuario == 1) {
             JOptionPane.showMessageDialog(this,
                     "No se puede eliminar al usuario 'admin' (ID 1).",
@@ -341,31 +343,21 @@ public class GestionUsuariosPanel extends JPanel {
 
         int confirmacion = JOptionPane.showConfirmDialog(this,
                 "¿Está seguro de ELIMINAR PERMANENTEMENTE al usuario: " + nombreUsuario + "?\n\n" +
-                        "ADVERTENCIA: Esta acción no se puede deshacer.\n" +
-                        "",
+                        "ADVERTENCIA: Esta acción no se puede deshacer.\n",
                 "Confirmar Eliminación Permanente", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (confirmacion == JOptionPane.YES_OPTION) {
-
-            // --- INICIO DE LA MODIFICACIÓN ---
-            // Se restaura la consulta DELETE original
-            // Esto SÓLO funcionará si ejecutaste los 3 comandos SQL que te di al inicio.
             String query = "DELETE FROM usuarios WHERE id_usuario = ?";
-            // --- FIN DE LA MODIFICACIÓN ---
-
             int resultado = DatabaseUtils.ejecutarUpdate(query, idUsuario);
 
             if (resultado > 0) {
                 JOptionPane.showMessageDialog(this, "Usuario eliminado permanentemente.");
                 cargarDatosUsuarios();
             }
-            // Nota: Si la BD no se modificó, DatabaseUtils.ejecutarUpdate()
-            // mostrará automáticamente el error de 'Foreign Key' en un JOptionPane.
         }
     }
 
     private void resetContrasena() {
-        // (Este método se queda igual que en la respuesta anterior, con BCrypt)
         int filaSeleccionada = tablaUsuarios.getSelectedRow();
         if (filaSeleccionada == -1) {
             JOptionPane.showMessageDialog(this, "Seleccione un usuario para resetear contraseña.");

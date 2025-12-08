@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
+import java.util.List; // Importar List para las listas desplegables
 
 public class GestionServiciosPanel extends JPanel {
     private JTable tablaServicios;
@@ -120,6 +121,15 @@ public class GestionServiciosPanel extends JPanel {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
+            
+            // Definir tipos de columnas para asegurar que los números se traten como números
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 7) { // Costo Total
+                    return Double.class;
+                }
+                return String.class;
+            }
         };
 
         tablaServicios = new JTable(modeloTabla);
@@ -157,7 +167,10 @@ public class GestionServiciosPanel extends JPanel {
         botonDetalles.addActionListener(e -> verDetallesServicio());
         botonEditar.addActionListener(e -> editarServicio());
         botonCambiarEstado.addActionListener(e -> cambiarEstadoServicio());
+        
+        // --- AQUÍ ESTÁ LA FUNCIÓN MODIFICADA ---
         botonGenerarFactura.addActionListener(e -> generarFactura());
+        
         botonEliminar.addActionListener(e -> eliminarServicio());
 
         return panel;
@@ -194,7 +207,10 @@ public class GestionServiciosPanel extends JPanel {
         return boton;
     }
 
-    // MÉTODOS PARA SERVICIOS
+    // =========================================================================
+    // MÉTODOS DE LÓGICA
+    // =========================================================================
+
     private void cargarDatosServicios() {
         String query = "SELECT s.id_servicio, " +
                 "CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas) as vehiculo, " +
@@ -256,7 +272,6 @@ public class GestionServiciosPanel extends JPanel {
     }
 
     private void agregarServicio() {
-        // Obtener lista de vehículos y mecánicos
         java.util.List<String> vehiculos = obtenerListaVehiculos();
         java.util.List<String> mecanicos = obtenerListaMecanicos();
         java.util.List<String> categorias = obtenerListaCategoriasServicios();
@@ -269,47 +284,35 @@ public class GestionServiciosPanel extends JPanel {
         JComboBox<String> comboVehiculo = new JComboBox<>(vehiculos.toArray(new String[0]));
         JComboBox<String> comboMecanico = new JComboBox<>(mecanicos.toArray(new String[0]));
         JComboBox<String> comboCategoria = new JComboBox<>(categorias.toArray(new String[0]));
-        JTextArea txtDescripcion = new JTextArea(3, 25); // Reducido de 4 a 3 filas
+        JTextArea txtDescripcion = new JTextArea(3, 25);
         txtDescripcion.setLineWrap(true);
         txtDescripcion.setWrapStyleWord(true);
         JTextField txtFechaInicio = new JTextField(java.time.LocalDate.now().toString());
         JTextField txtFechaFin = new JTextField();
         JTextField txtCostoManoObra = new JTextField();
         JTextField txtCostoTotal = new JTextField();
-        JTextArea txtObservaciones = new JTextArea(2, 25); // Reducido de 3 a 2 filas
+        JTextArea txtObservaciones = new JTextArea(2, 25);
         txtObservaciones.setLineWrap(true);
         txtObservaciones.setWrapStyleWord(true);
         JComboBox<String> comboEstado = new JComboBox<>(
                 new String[] { "Pendiente", "En Proceso", "Completado", "Facturado", "Cancelado" });
 
-        // Crear panel con GridLayout más compacto
-        JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8)); // Reducido espaciado
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10)); // Margen interno reducido
+        JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-        panel.add(new JLabel("Vehículo:"));
-        panel.add(comboVehiculo);
-        panel.add(new JLabel("Mecánico:"));
-        panel.add(comboMecanico);
-        panel.add(new JLabel("Categoría:"));
-        panel.add(comboCategoria);
-        panel.add(new JLabel("Descripción:"));
-        panel.add(new JScrollPane(txtDescripcion));
-        panel.add(new JLabel("Fecha Inicio:"));
-        panel.add(txtFechaInicio);
-        panel.add(new JLabel("Fecha Fin:"));
-        panel.add(txtFechaFin);
-        panel.add(new JLabel("Costo Mano Obra:"));
-        panel.add(txtCostoManoObra);
-        panel.add(new JLabel("Costo Total:"));
-        panel.add(txtCostoTotal);
-        panel.add(new JLabel("Estado:"));
-        panel.add(comboEstado);
-        panel.add(new JLabel("Observaciones:"));
-        panel.add(new JScrollPane(txtObservaciones));
+        panel.add(new JLabel("Vehículo:")); panel.add(comboVehiculo);
+        panel.add(new JLabel("Mecánico:")); panel.add(comboMecanico);
+        panel.add(new JLabel("Categoría:")); panel.add(comboCategoria);
+        panel.add(new JLabel("Descripción:")); panel.add(new JScrollPane(txtDescripcion));
+        panel.add(new JLabel("Fecha Inicio:")); panel.add(txtFechaInicio);
+        panel.add(new JLabel("Fecha Fin:")); panel.add(txtFechaFin);
+        panel.add(new JLabel("Costo Mano Obra:")); panel.add(txtCostoManoObra);
+        panel.add(new JLabel("Costo Total:")); panel.add(txtCostoTotal);
+        panel.add(new JLabel("Estado:")); panel.add(comboEstado);
+        panel.add(new JLabel("Observaciones:")); panel.add(new JScrollPane(txtObservaciones));
 
-        // Crear un panel contenedor con scroll
         JScrollPane scrollPane = new JScrollPane(panel);
-        scrollPane.setPreferredSize(new Dimension(500, 400)); // Tamaño fijo más pequeño
+        scrollPane.setPreferredSize(new Dimension(500, 400));
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         int result = JOptionPane.showConfirmDialog(this, scrollPane,
@@ -321,7 +324,6 @@ public class GestionServiciosPanel extends JPanel {
                 return;
             }
 
-            // Obtener IDs
             String vehiculoSeleccionado = (String) comboVehiculo.getSelectedItem();
             int idVehiculo = obtenerIdVehiculo(vehiculoSeleccionado);
             String mecanicoSeleccionado = (String) comboMecanico.getSelectedItem();
@@ -334,17 +336,13 @@ public class GestionServiciosPanel extends JPanel {
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             int filasAfectadas = DatabaseUtils.ejecutarUpdate(query,
-                    idVehiculo,
-                    idMecanico,
-                    idCategoria,
+                    idVehiculo, idMecanico, idCategoria,
                     txtDescripcion.getText().trim(),
                     txtFechaInicio.getText().trim(),
                     txtFechaFin.getText().trim().isEmpty() ? null : txtFechaFin.getText().trim(),
                     comboEstado.getSelectedItem().toString(),
-                    txtCostoManoObra.getText().trim().isEmpty() ? null
-                            : Double.parseDouble(txtCostoManoObra.getText().trim()),
-                    txtCostoTotal.getText().trim().isEmpty() ? null
-                            : Double.parseDouble(txtCostoTotal.getText().trim()),
+                    txtCostoManoObra.getText().trim().isEmpty() ? null : Double.parseDouble(txtCostoManoObra.getText().trim()),
+                    txtCostoTotal.getText().trim().isEmpty() ? null : Double.parseDouble(txtCostoTotal.getText().trim()),
                     txtObservaciones.getText().trim());
 
             if (filasAfectadas > 0) {
@@ -362,15 +360,12 @@ public class GestionServiciosPanel extends JPanel {
         }
 
         int idServicio = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-
-        // Obtener datos actuales del servicio
         Servicio servicio = obtenerServicioPorId(idServicio);
         if (servicio == null) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos del servicio.");
             return;
         }
 
-        // Obtener listas
         java.util.List<String> vehiculos = obtenerListaVehiculos();
         java.util.List<String> mecanicos = obtenerListaMecanicos();
         java.util.List<String> categorias = obtenerListaCategoriasServicios();
@@ -386,51 +381,34 @@ public class GestionServiciosPanel extends JPanel {
         txtDescripcion.setWrapStyleWord(true);
         JTextField txtFechaInicio = new JTextField(servicio.fechaInicio);
         JTextField txtFechaFin = new JTextField(servicio.fechaFin != null ? servicio.fechaFin : "");
-        JTextField txtCostoManoObra = new JTextField(
-                servicio.costoManoObra != null ? servicio.costoManoObra.toString() : "");
+        JTextField txtCostoManoObra = new JTextField(servicio.costoManoObra != null ? servicio.costoManoObra.toString() : "");
         JTextField txtCostoTotal = new JTextField(servicio.costoTotal != null ? servicio.costoTotal.toString() : "");
         JTextArea txtObservaciones = new JTextArea(servicio.observaciones != null ? servicio.observaciones : "", 3, 30);
         txtObservaciones.setLineWrap(true);
         txtObservaciones.setWrapStyleWord(true);
-        JComboBox<String> comboEstado = new JComboBox<>(
-                new String[] { "Pendiente", "En Proceso", "Completado", "Facturado", "Cancelado" });
+        JComboBox<String> comboEstado = new JComboBox<>(new String[] { "Pendiente", "En Proceso", "Completado", "Facturado", "Cancelado" });
         comboEstado.setSelectedItem(servicio.estado);
 
-        // Crear panel con GridLayout más compacto
         JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.add(new JLabel("Vehículo:")); panel.add(comboVehiculo);
+        panel.add(new JLabel("Mecánico:")); panel.add(comboMecanico);
+        panel.add(new JLabel("Categoría:")); panel.add(comboCategoria);
+        panel.add(new JLabel("Descripción:")); panel.add(new JScrollPane(txtDescripcion));
+        panel.add(new JLabel("Fecha Inicio (YYYY-MM-DD):")); panel.add(txtFechaInicio);
+        panel.add(new JLabel("Fecha Fin (YYYY-MM-DD):")); panel.add(txtFechaFin);
+        panel.add(new JLabel("Costo Mano de Obra:")); panel.add(txtCostoManoObra);
+        panel.add(new JLabel("Costo Total:")); panel.add(txtCostoTotal);
+        panel.add(new JLabel("Estado:")); panel.add(comboEstado);
+        panel.add(new JLabel("Observaciones:")); panel.add(new JScrollPane(txtObservaciones));
 
-        panel.add(new JLabel("Vehículo:"));
-        panel.add(comboVehiculo);
-        panel.add(new JLabel("Mecánico:"));
-        panel.add(comboMecanico);
-        panel.add(new JLabel("Categoría:"));
-        panel.add(comboCategoria);
-        panel.add(new JLabel("Descripción:"));
-        panel.add(new JScrollPane(txtDescripcion));
-        panel.add(new JLabel("Fecha Inicio (YYYY-MM-DD):"));
-        panel.add(txtFechaInicio);
-        panel.add(new JLabel("Fecha Fin (YYYY-MM-DD):"));
-        panel.add(txtFechaFin);
-        panel.add(new JLabel("Costo Mano de Obra:"));
-        panel.add(txtCostoManoObra);
-        panel.add(new JLabel("Costo Total:"));
-        panel.add(txtCostoTotal);
-        panel.add(new JLabel("Estado:"));
-        panel.add(comboEstado);
-        panel.add(new JLabel("Observaciones:"));
-        panel.add(new JScrollPane(txtObservaciones));
-
-        // Crear un panel contenedor con scroll
         JScrollPane scrollPane = new JScrollPane(panel);
         scrollPane.setPreferredSize(new Dimension(500, 400));
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
-        int result = JOptionPane.showConfirmDialog(this, scrollPane,
-                "Editar Servicio", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, scrollPane, "Editar Servicio", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
-            // Obtener IDs
             String vehiculoSeleccionado = (String) comboVehiculo.getSelectedItem();
             int idVehiculo = obtenerIdVehiculo(vehiculoSeleccionado);
             String mecanicoSeleccionado = (String) comboMecanico.getSelectedItem();
@@ -443,17 +421,13 @@ public class GestionServiciosPanel extends JPanel {
                     "costo_mano_obra = ?, costo_total = ?, observaciones = ? WHERE id_servicio = ?";
 
             int filasAfectadas = DatabaseUtils.ejecutarUpdate(query,
-                    idVehiculo,
-                    idMecanico,
-                    idCategoria,
+                    idVehiculo, idMecanico, idCategoria,
                     txtDescripcion.getText().trim(),
                     txtFechaInicio.getText().trim(),
                     txtFechaFin.getText().trim().isEmpty() ? null : txtFechaFin.getText().trim(),
                     comboEstado.getSelectedItem().toString(),
-                    txtCostoManoObra.getText().trim().isEmpty() ? null
-                            : Double.parseDouble(txtCostoManoObra.getText().trim()),
-                    txtCostoTotal.getText().trim().isEmpty() ? null
-                            : Double.parseDouble(txtCostoTotal.getText().trim()),
+                    txtCostoManoObra.getText().trim().isEmpty() ? null : Double.parseDouble(txtCostoManoObra.getText().trim()),
+                    txtCostoTotal.getText().trim().isEmpty() ? null : Double.parseDouble(txtCostoTotal.getText().trim()),
                     txtObservaciones.getText().trim(),
                     idServicio);
 
@@ -501,18 +475,8 @@ public class GestionServiciosPanel extends JPanel {
 
         if (servicio != null) {
             String detalles = String.format(
-                    "ID Servicio: %d\n" +
-                            "Vehículo: %s\n" +
-                            "Cliente: %s\n" +
-                            "Mecánico: %s\n" +
-                            "Categoría: %s\n" +
-                            "Descripción: %s\n" +
-                            "Fecha Inicio: %s\n" +
-                            "Fecha Fin: %s\n" +
-                            "Estado: %s\n" +
-                            "Costo Mano de Obra: $%.2f\n" +
-                            "Costo Total: $%.2f\n" +
-                            "Observaciones: %s",
+                    "ID Servicio: %d\nVehículo: %s\nCliente: %s\nMecánico: %s\nCategoría: %s\nDescripción: %s\n" +
+                    "Fecha Inicio: %s\nFecha Fin: %s\nEstado: %s\nCosto Mano de Obra: $%.2f\nCosto Total: $%.2f\nObservaciones: %s",
                     servicio.idServicio, servicio.vehiculo, servicio.cliente, servicio.mecanico,
                     servicio.categoria, servicio.descripcion, servicio.fechaInicio,
                     servicio.fechaFin != null ? servicio.fechaFin : "No completado",
@@ -560,6 +524,7 @@ public class GestionServiciosPanel extends JPanel {
         }
     }
 
+    // ==================== GENERAR FACTURA (MÉTODO MODIFICADO) ====================
     private void generarFactura() {
         int filaSeleccionada = tablaServicios.getSelectedRow();
         if (filaSeleccionada == -1) {
@@ -567,9 +532,11 @@ public class GestionServiciosPanel extends JPanel {
             return;
         }
 
+        // Obtener ID y Estado
         int idServicio = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
         String estadoActual = (String) modeloTabla.getValueAt(filaSeleccionada, 6);
 
+        // Validación: Solo permitir facturar servicios completados
         if (!"Completado".equals(estadoActual)) {
             JOptionPane.showMessageDialog(this,
                     "Solo se pueden generar facturas para servicios completados.\n" +
@@ -578,208 +545,168 @@ public class GestionServiciosPanel extends JPanel {
             return;
         }
 
-        // Aquí puedes implementar la lógica para generar la factura
-        JOptionPane.showMessageDialog(this,
-                "Generando factura para el servicio ID: " + idServicio + "\n\n" +
-                        "Esta funcionalidad creará una factura en PDF y la registrará en la base de datos.",
-                "Generar Factura", JOptionPane.INFORMATION_MESSAGE);
+        // Confirmación para generar PDF
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "¿Desea generar un reporte PDF preliminar de este servicio?",
+                "Generar Reporte PDF", JOptionPane.YES_NO_OPTION);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Recoger datos de la tabla para el reporte
+            String vehiculo = (String) modeloTabla.getValueAt(filaSeleccionada, 1);
+            String cliente = (String) modeloTabla.getValueAt(filaSeleccionada, 2);
+            String descripcion = (String) modeloTabla.getValueAt(filaSeleccionada, 3);
+            
+            // Manejo seguro del costo total (puede ser Double o String según la carga)
+            Double total = 0.0;
+            Object totalObj = modeloTabla.getValueAt(filaSeleccionada, 7);
+            if (totalObj instanceof Double) {
+                total = (Double) totalObj;
+            } else if (totalObj instanceof Number) {
+                total = ((Number) totalObj).doubleValue();
+            } else if (totalObj instanceof String) {
+                try {
+                    total = Double.parseDouble((String) totalObj);
+                } catch (NumberFormatException e) {
+                    total = 0.0;
+                }
+            }
+
+            // Cálculos aproximados para el reporte
+            double subtotal = total / 1.16;
+            double iva = total - subtotal;
+
+            // Llamada a la utilidad de PDF
+            ReportePDFUtils.generarFacturaPDF(
+                    "SERV-" + idServicio, // ID Temporal para el reporte
+                    cliente,
+                    vehiculo,
+                    java.time.LocalDate.now().toString(),
+                    subtotal,
+                    iva,
+                    total,
+                    descripcion
+            );
+        }
     }
 
-    // MÉTODOS AUXILIARES
+    // ==================== MÉTODOS DE BASE DE DATOS AUXILIARES ====================
+    
     private java.util.List<String> obtenerListaVehiculos() {
         java.util.List<String> vehiculos = new java.util.ArrayList<>();
         String query = "SELECT CONCAT(marca, ' ', modelo, ' - ', placas) as vehiculo FROM vehiculos ORDER BY marca, modelo";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                vehiculos.add(rs.getString("vehiculo"));
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) vehiculos.add(rs.getString("vehiculo"));
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar la lista de vehículos: " + e.getMessage());
         }
-
         return vehiculos;
     }
 
     private java.util.List<String> obtenerListaMecanicos() {
         java.util.List<String> mecanicos = new java.util.ArrayList<>();
         String query = "SELECT nombre_completo FROM usuarios WHERE rol IN ('Técnico', 'Supervisor') AND estado = 'Activo' ORDER BY nombre_completo";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                mecanicos.add(rs.getString("nombre_completo"));
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) mecanicos.add(rs.getString("nombre_completo"));
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar la lista de mecánicos: " + e.getMessage());
         }
-
         return mecanicos;
     }
 
     private java.util.List<String> obtenerListaCategoriasServicios() {
         java.util.List<String> categorias = new java.util.ArrayList<>();
         String query = "SELECT nombre FROM categorias_servicios WHERE estado = 'Activa' ORDER BY nombre";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                categorias.add(rs.getString("nombre"));
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) categorias.add(rs.getString("nombre"));
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar la lista de categorías: " + e.getMessage());
         }
-
         return categorias;
     }
 
     private int obtenerIdVehiculo(String vehiculoInfo) {
-        // El formato es: "Marca Modelo - Placas"
         String placas = vehiculoInfo.substring(vehiculoInfo.lastIndexOf("-") + 1).trim();
         String query = "SELECT id_vehiculo FROM vehiculos WHERE placas = ?";
-        int idVehiculo = -1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, placas);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                idVehiculo = rs.getInt("id_vehiculo");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+            if (rs.next()) return rs.getInt("id_vehiculo");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return idVehiculo;
+        return -1;
     }
 
     private int obtenerIdUsuario(String nombreCompleto) {
         String query = "SELECT id_usuario FROM usuarios WHERE nombre_completo = ?";
-        int idUsuario = -1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, nombreCompleto);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                idUsuario = rs.getInt("id_usuario");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+            if (rs.next()) return rs.getInt("id_usuario");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return idUsuario;
+        return -1;
     }
 
     private int obtenerIdCategoriaServicio(String nombreCategoria) {
         String query = "SELECT id_categoria FROM categorias_servicios WHERE nombre = ?";
-        int idCategoria = -1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, nombreCategoria);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                idCategoria = rs.getInt("id_categoria");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+            if (rs.next()) return rs.getInt("id_categoria");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return idCategoria;
+        return -1;
     }
 
     private Servicio obtenerServicioPorId(int idServicio) {
-        String query = "SELECT s.*, " +
-                "CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas) as vehiculo, " +
-                "c.nombre as cliente, " +
-                "u.nombre_completo as mecanico, " +
-                "cs.nombre as categoria " +
+        String query = "SELECT s.*, CONCAT(v.marca, ' ', v.modelo, ' - ', v.placas) as vehiculo, c.nombre as cliente, u.nombre_completo as mecanico, cs.nombre as categoria " +
                 "FROM servicios s " +
                 "INNER JOIN vehiculos v ON s.id_vehiculo = v.id_vehiculo " +
                 "INNER JOIN clientes c ON v.id_cliente = c.id_cliente " +
                 "INNER JOIN usuarios u ON s.id_mecanico = u.id_usuario " +
                 "LEFT JOIN categorias_servicios cs ON s.id_categoria = cs.id_categoria " +
                 "WHERE s.id_servicio = ?";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, idServicio);
             ResultSet rs = stmt.executeQuery();
-
             if (rs.next()) {
-                Servicio servicio = new Servicio();
-                servicio.idServicio = rs.getInt("id_servicio");
-                servicio.vehiculo = rs.getString("vehiculo");
-                servicio.cliente = rs.getString("cliente");
-                servicio.mecanico = rs.getString("mecanico");
-                servicio.categoria = rs.getString("categoria");
-                servicio.descripcion = rs.getString("descripcion_servicio");
-                servicio.fechaInicio = rs.getString("fecha_inicio");
-                servicio.fechaFin = rs.getString("fecha_fin");
-                servicio.estado = rs.getString("estado");
-                servicio.costoManoObra = rs.getObject("costo_mano_obra") != null ? rs.getDouble("costo_mano_obra")
-                        : null;
-                servicio.costoTotal = rs.getObject("costo_total") != null ? rs.getDouble("costo_total") : null;
-                servicio.observaciones = rs.getString("observaciones");
-
-                DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-                return servicio;
+                Servicio s = new Servicio();
+                s.idServicio = rs.getInt("id_servicio");
+                s.vehiculo = rs.getString("vehiculo");
+                s.cliente = rs.getString("cliente");
+                s.mecanico = rs.getString("mecanico");
+                s.categoria = rs.getString("categoria");
+                s.descripcion = rs.getString("descripcion_servicio");
+                s.fechaInicio = rs.getString("fecha_inicio");
+                s.fechaFin = rs.getString("fecha_fin");
+                s.estado = rs.getString("estado");
+                s.costoManoObra = rs.getObject("costo_mano_obra") != null ? rs.getDouble("costo_mano_obra") : null;
+                s.costoTotal = rs.getObject("costo_total") != null ? rs.getDouble("costo_total") : null;
+                s.observaciones = rs.getString("observaciones");
+                return s;
             }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
-    // Clase auxiliar para representar un servicio
     private static class Servicio {
         int idServicio;
-        String vehiculo;
-        String cliente;
-        String mecanico;
-        String categoria;
-        String descripcion;
-        String fechaInicio;
-        String fechaFin;
-        String estado;
-        Double costoManoObra;
-        Double costoTotal;
-        String observaciones;
+        String vehiculo, cliente, mecanico, categoria, descripcion, fechaInicio, fechaFin, estado, observaciones;
+        Double costoManoObra, costoTotal;
     }
 }

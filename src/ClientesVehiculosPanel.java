@@ -233,9 +233,27 @@ public class ClientesVehiculosPanel extends JPanel {
         panel.add(botonImprimirClientes);
         panel.add(botonImprimirVehiculos);
 
-        // ACCIONES DE IMPRESIÓN
-        botonImprimirClientes.addActionListener(e -> imprimirTabla(tablaClientes, "REPORTE DE CLIENTES - TALLER JUAN"));
-        botonImprimirVehiculos.addActionListener(e -> imprimirTabla(tablaVehiculos, "REPORTE DE VEHÍCULOS - TALLER JUAN"));
+        // ACCIONES MODIFICADAS
+        botonExportar.addActionListener(e -> {
+            // Preguntar qué tabla exportar
+            String[] opciones = {"Clientes", "Vehículos"};
+            int seleccion = JOptionPane.showOptionDialog(this, "¿Qué datos desea exportar?", "Exportar Datos",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+
+            if (seleccion == 0) {
+                ExportarUtils.exportarTablaACSV(tablaClientes, this);
+            } else if (seleccion == 1) {
+                ExportarUtils.exportarTablaACSV(tablaVehiculos, this);
+            }
+        });
+
+        // ACCIONES DE REPORTE (PDF)
+        botonReporteClientes.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaClientes, "REPORTE DE CLIENTES - TALLER CASA DEL MOTOR", "Reporte_Clientes"));
+        botonReporteVehiculos.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaVehiculos, "REPORTE DE VEHÍCULOS - TALLER DEL MOTOR", "Reporte_Vehiculos"));
+
+        // ACCIONES DE IMPRESIÓN (impresora física, ya implementadas)
+        botonImprimirClientes.addActionListener(e -> imprimirTabla(tablaClientes, "REPORTE DE CLIENTES - TALLER DEL MOTOR"));
+        botonImprimirVehiculos.addActionListener(e -> imprimirTabla(tablaVehiculos, "REPORTE DE VEHÍCULOS - TALLER DEL MOTOR"));
 
         return panel;
     }
@@ -272,7 +290,7 @@ public class ClientesVehiculosPanel extends JPanel {
         return boton;
     }
 
-    // ==================== IMPRESIÓN DE TABLAS ====================
+    // ==================== IMPRESIÓN DE TABLAS (MÉTODO EXISTENTE) ====================
     private void imprimirTabla(JTable tabla, String tituloReporte) {
         PrinterJob job = PrinterJob.getPrinterJob();
         job.setJobName(tituloReporte);

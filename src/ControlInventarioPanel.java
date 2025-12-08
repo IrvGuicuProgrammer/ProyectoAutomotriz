@@ -6,6 +6,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.*;
+import java.util.List;
+import java.util.ArrayList;
 
 public class ControlInventarioPanel extends JPanel {
     private JTable tablaInventario;
@@ -191,7 +193,9 @@ public class ControlInventarioPanel extends JPanel {
         JButton botonRetirarStock = crearBotonEstilizado("Salida Stock", new Color(255, 193, 7));
         JButton botonEditar = crearBotonEstilizado("Editar Producto", new Color(30, 60, 114));
         JButton botonEliminar = crearBotonEstilizado("Eliminar", new Color(220, 53, 69));
-        JButton botonReporte = crearBotonEstilizado("Reporte Stock", new Color(108, 117, 125));
+        
+        // Botón modificado para usar el PDF
+        JButton botonReporte = crearBotonEstilizado("Reporte Stock (PDF)", new Color(108, 117, 125));
 
         panel.add(botonAgregarStock);
         panel.add(botonRetirarStock);
@@ -204,6 +208,8 @@ public class ControlInventarioPanel extends JPanel {
         botonRetirarStock.addActionListener(e -> salidaStock());
         botonEditar.addActionListener(e -> editarProducto());
         botonEliminar.addActionListener(e -> eliminarProducto());
+        
+        // --- ACCIÓN MODIFICADA ---
         botonReporte.addActionListener(e -> generarReporteStock());
 
         return panel;
@@ -307,7 +313,6 @@ public class ControlInventarioPanel extends JPanel {
     }
 
     private void agregarProducto() {
-        // Obtener listas
         java.util.List<String> categorias = obtenerListaCategorias();
         java.util.List<String> proveedores = obtenerListaProveedores();
 
@@ -328,13 +333,12 @@ public class ControlInventarioPanel extends JPanel {
         comboProveedor.setSelectedIndex(0);
         JTextField txtUbicacion = new JTextField();
         JComboBox<String> comboEstado = new JComboBox<>(new String[] { "Activo", "Inactivo" });
-        JTextArea txtDescripcion = new JTextArea(2, 25); // Reducido de 3 a 2 filas
+        JTextArea txtDescripcion = new JTextArea(2, 25);
         txtDescripcion.setLineWrap(true);
         txtDescripcion.setWrapStyleWord(true);
 
-        // Crear panel con GridLayout más compacto
-        JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8)); // Reducido espaciado
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10)); // Margen interno reducido
+        JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         panel.add(new JLabel("Código Producto:"));
         panel.add(txtCodigo);
@@ -359,9 +363,8 @@ public class ControlInventarioPanel extends JPanel {
         panel.add(new JLabel("Descripción:"));
         panel.add(new JScrollPane(txtDescripcion));
 
-        // Crear un panel contenedor con scroll
         JScrollPane scrollPane = new JScrollPane(panel);
-        scrollPane.setPreferredSize(new Dimension(500, 400)); // Tamaño fijo más pequeño
+        scrollPane.setPreferredSize(new Dimension(500, 400));
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         int result = JOptionPane.showConfirmDialog(this, scrollPane,
@@ -373,7 +376,6 @@ public class ControlInventarioPanel extends JPanel {
                 return;
             }
 
-            // Obtener IDs
             String categoriaSeleccionada = (String) comboCategoria.getSelectedItem();
             int idCategoria = obtenerIdCategoriaProducto(categoriaSeleccionada);
             String proveedorSeleccionado = (String) comboProveedor.getSelectedItem();
@@ -414,15 +416,12 @@ public class ControlInventarioPanel extends JPanel {
         }
 
         int idProducto = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
-
-        // Obtener datos actuales del producto
         Producto producto = obtenerProductoPorId(idProducto);
         if (producto == null) {
             JOptionPane.showMessageDialog(this, "Error al cargar los datos del producto.");
             return;
         }
 
-        // Obtener listas
         java.util.List<String> categorias = obtenerListaCategorias();
         java.util.List<String> proveedores = obtenerListaProveedores();
 
@@ -446,7 +445,6 @@ public class ControlInventarioPanel extends JPanel {
         txtDescripcion.setLineWrap(true);
         txtDescripcion.setWrapStyleWord(true);
 
-        // Crear panel con GridLayout más compacto
         JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
         panel.add(new JLabel("Código Producto:"));
@@ -472,7 +470,6 @@ public class ControlInventarioPanel extends JPanel {
         panel.add(new JLabel("Descripción:"));
         panel.add(new JScrollPane(txtDescripcion));
 
-        // Crear un panel contenedor con scroll
         JScrollPane scrollPane = new JScrollPane(panel);
         scrollPane.setPreferredSize(new Dimension(500, 400));
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
@@ -481,7 +478,6 @@ public class ControlInventarioPanel extends JPanel {
                 "Editar Producto", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
         if (result == JOptionPane.OK_OPTION) {
-            // Obtener IDs
             String categoriaSeleccionada = (String) comboCategoria.getSelectedItem();
             int idCategoria = obtenerIdCategoriaProducto(categoriaSeleccionada);
             String proveedorSeleccionado = (String) comboProveedor.getSelectedItem();
@@ -578,12 +574,10 @@ public class ControlInventarioPanel extends JPanel {
                     return;
                 }
 
-                // Actualizar stock del producto
                 String updateQuery = "UPDATE productos SET stock_actual = stock_actual + ? WHERE id_producto = ?";
                 int filasActualizadas = DatabaseUtils.ejecutarUpdate(updateQuery, cantidad, idProducto);
 
                 if (filasActualizadas > 0) {
-                    // Registrar movimiento en el historial
                     registrarMovimientoInventario(idProducto, "Entrada", cantidad,
                             txtMotivo.getText().trim(), txtReferencia.getText().trim());
 
@@ -644,12 +638,10 @@ public class ControlInventarioPanel extends JPanel {
                     return;
                 }
 
-                // Actualizar stock del producto
                 String updateQuery = "UPDATE productos SET stock_actual = stock_actual - ? WHERE id_producto = ?";
                 int filasActualizadas = DatabaseUtils.ejecutarUpdate(updateQuery, cantidad, idProducto);
 
                 if (filasActualizadas > 0) {
-                    // Registrar movimiento en el historial
                     registrarMovimientoInventario(idProducto, "Salida", cantidad,
                             txtMotivo.getText().trim(), txtReferencia.getText().trim());
 
@@ -664,102 +656,63 @@ public class ControlInventarioPanel extends JPanel {
         }
     }
 
+    // ==================== GENERAR REPORTE DE STOCK (PDF) ====================
     private void generarReporteStock() {
-        // Aquí puedes implementar la generación de reportes de stock
-        JOptionPane.showMessageDialog(this,
-                "Generando reporte de stock...\n\n" +
-                        "Esta funcionalidad generará un reporte completo del inventario " +
-                        "con productos bajos en stock y estadísticas generales.",
-                "Reporte de Stock", JOptionPane.INFORMATION_MESSAGE);
+        // Generar PDF usando la utilidad ReportePDFUtils
+        ReportePDFUtils.generarReporteTablaPDF(tablaInventario, "REPORTE DE INVENTARIO Y STOCK - TALLER CASA DEL MOTOR", "Reporte_Inventario");
     }
 
-    // MÉTODOS AUXILIARES
+    // ==================== MÉTODOS AUXILIARES DE BASE DE DATOS ====================
     private java.util.List<String> obtenerListaCategorias() {
         java.util.List<String> categorias = new java.util.ArrayList<>();
         String query = "SELECT nombre FROM categorias_productos WHERE estado = 'Activa' ORDER BY nombre";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                categorias.add(rs.getString("nombre"));
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) categorias.add(rs.getString("nombre"));
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar la lista de categorías: " + e.getMessage());
         }
-
         return categorias;
     }
 
     private java.util.List<String> obtenerListaProveedores() {
         java.util.List<String> proveedores = new java.util.ArrayList<>();
         String query = "SELECT nombre FROM proveedores WHERE estado = 'Activo' ORDER BY nombre";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
-
-            while (rs.next()) {
-                proveedores.add(rs.getString("nombre"));
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) proveedores.add(rs.getString("nombre"));
         } catch (SQLException e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error al cargar la lista de proveedores: " + e.getMessage());
         }
-
         return proveedores;
     }
 
     private int obtenerIdCategoriaProducto(String nombreCategoria) {
         String query = "SELECT id_categoria FROM categorias_productos WHERE nombre = ?";
-        int idCategoria = -1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, nombreCategoria);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                idCategoria = rs.getInt("id_categoria");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+            if (rs.next()) return rs.getInt("id_categoria");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return idCategoria;
+        return -1;
     }
 
     private int obtenerIdProveedor(String nombreProveedor) {
         String query = "SELECT id_proveedor FROM proveedores WHERE nombre = ?";
-        int idProveedor = -1;
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, nombreProveedor);
             ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                idProveedor = rs.getInt("id_proveedor");
-            }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+            if (rs.next()) return rs.getInt("id_proveedor");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return idProveedor;
+        return -1;
     }
 
     private Producto obtenerProductoPorId(int idProducto) {
@@ -768,13 +721,10 @@ public class ControlInventarioPanel extends JPanel {
                 "LEFT JOIN categorias_productos cp ON p.id_categoria = cp.id_categoria " +
                 "LEFT JOIN proveedores pr ON p.id_proveedor = pr.id_proveedor " +
                 "WHERE p.id_producto = ?";
-
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, idProducto);
             ResultSet rs = stmt.executeQuery();
-
             if (rs.next()) {
                 Producto producto = new Producto();
                 producto.idProducto = rs.getInt("id_producto");
@@ -789,44 +739,24 @@ public class ControlInventarioPanel extends JPanel {
                 producto.ubicacion = rs.getString("ubicacion");
                 producto.estado = rs.getString("estado");
                 producto.descripcion = rs.getString("descripcion");
-
-                DatabaseUtils.cerrarRecursos(conn, stmt, rs);
                 return producto;
             }
-
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
-    private void registrarMovimientoInventario(int idProducto, String tipo, int cantidad, String motivo,
-            String referencia) {
-        // Obtener el ID del usuario actual (podrías obtenerlo de la sesión)
-        int idUsuario = 1; // Por defecto, en una implementación real obtendrías esto de la sesión
-
-        String query = "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, motivo, referencia, id_usuario) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?)";
-
+    private void registrarMovimientoInventario(int idProducto, String tipo, int cantidad, String motivo, String referencia) {
+        int idUsuario = 1; // Por defecto
+        String query = "INSERT INTO movimientos_inventario (id_producto, tipo, cantidad, motivo, referencia, id_usuario) VALUES (?, ?, ?, ?, ?, ?)";
         DatabaseUtils.ejecutarUpdate(query, idProducto, tipo, cantidad, motivo, referencia, idUsuario);
     }
 
-    // Clase auxiliar para representar un producto
     private static class Producto {
         int idProducto;
-        String codigo;
-        String nombre;
-        String categoria;
-        int stockActual;
-        int stockMinimo;
-        Double precioCompra;
-        Double precioVenta;
-        String proveedor;
-        String ubicacion;
-        String estado;
-        String descripcion;
+        String codigo, nombre, categoria, proveedor, ubicacion, estado, descripcion;
+        int stockActual, stockMinimo;
+        Double precioCompra, precioVenta;
     }
 }

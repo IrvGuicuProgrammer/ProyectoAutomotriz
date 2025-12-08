@@ -2,7 +2,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.io.*;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -84,13 +83,13 @@ public class HistorialConsultasPanel extends JPanel {
         comboTipoConsulta.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         comboRangoFechas = new JComboBox<>(
-                new String[] { "Todo el tiempo", "Hoy", "Última semana", "Último mes", "Último trimestre",
-                        "Personalizado" });
+                new String[] { "Todo el tiempo", "Hoy", "Última semana", "Último mes", "Último trimestre" });
         comboRangoFechas.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
         JButton botonBuscar = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
         JButton botonLimpiar = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
-        JButton botonConsultaAvanzada = crearBotonEstilizado("Consulta Avanzada", new Color(40, 167, 69));
+        
+        // Se eliminó el botón de Consulta Avanzada
 
         panelBusqueda.add(new JLabel("Buscar:"));
         panelBusqueda.add(campoBusqueda);
@@ -100,7 +99,6 @@ public class HistorialConsultasPanel extends JPanel {
         panelBusqueda.add(comboRangoFechas);
         panelBusqueda.add(botonBuscar);
         panelBusqueda.add(botonLimpiar);
-        panelBusqueda.add(botonConsultaAvanzada);
 
         panel.add(panelBusqueda, BorderLayout.CENTER);
 
@@ -112,7 +110,6 @@ public class HistorialConsultasPanel extends JPanel {
             comboRangoFechas.setSelectedIndex(0);
             cargarDatosHistorial();
         });
-        botonConsultaAvanzada.addActionListener(e -> mostrarConsultaAvanzada());
 
         return panel;
     }
@@ -167,8 +164,13 @@ public class HistorialConsultasPanel extends JPanel {
 
         // Acciones de los botones
         botonVerDetalles.addActionListener(e -> verDetallesHistorial());
+        
+        // --- IMPLEMENTACIÓN REPORTES ---
         botonGenerarReporte.addActionListener(e -> generarReporteHistorial());
+        
+        // --- IMPLEMENTACIÓN EXPORTAR ---
         botonExportar.addActionListener(e -> exportarHistorial());
+        
         botonLimpiarHistorial.addActionListener(e -> limpiarHistorial());
         botonEstadisticas.addActionListener(e -> mostrarEstadisticas());
 
@@ -206,10 +208,9 @@ public class HistorialConsultasPanel extends JPanel {
         return boton;
     }
 
-    // MÉTODOS PARA HISTORIAL Y CONSULTAS
+    // ==================== MÉTODOS LÓGICOS ====================
+
     private void cargarDatosHistorial() {
-        // Consulta que combina datos del historial_consultas con información de otras
-        // tablas
         String query = "SELECT hc.id_consulta, " +
                 "hc.tipo_consulta, " +
                 "hc.descripcion, " +
@@ -259,7 +260,6 @@ public class HistorialConsultasPanel extends JPanel {
             parametros.add(tipoFiltro);
         }
 
-        // Filtro por rango de fechas
         if (!rangoFiltro.equals("Todo el tiempo")) {
             String condicionFecha = obtenerCondicionFecha(rangoFiltro);
             if (condicionFecha != null) {
@@ -269,25 +269,17 @@ public class HistorialConsultasPanel extends JPanel {
 
         query.append(" ORDER BY hc.fecha_consulta DESC LIMIT 100");
 
-        // --- INICIO DE CORRECCIÓN ---
-        // Registrar la búsqueda en el historial (si no es una búsqueda vacía)
+        // Registrar consulta solo si hay filtros activos
         if (!busqueda.isEmpty() || !tipoFiltro.equals("Todos") || !rangoFiltro.equals("Todo el tiempo")) {
-            String tipoLog = tipoFiltro;
-            if (tipoLog.equals("Todos")) {
-                tipoLog = "Servicios"; // Usar un valor por defecto válido para el ENUM
-            }
-            String descripcionLog = "Búsqueda: '" + busqueda + "', Tipo: '" + tipoFiltro + "', Rango: '" + rangoFiltro
-                    + "'";
-            registrarConsulta(tipoLog, descripcionLog, "Filtro: " + tipoFiltro, "Búsqueda realizada");
+            registrarConsulta("Busqueda Historial", 
+                "Filtro: " + tipoFiltro + ", Rango: " + rangoFiltro + ", Busq: " + busqueda, 
+                "Historial", "Éxito");
         }
-        // --- FIN DE CORRECCIÓN ---
 
         DatabaseUtils.llenarTablaDesdeConsulta(tablaHistorial, query.toString(), parametros.toArray());
     }
 
     private String obtenerCondicionFecha(String rango) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-
         switch (rango) {
             case "Hoy":
                 return "DATE(hc.fecha_consulta) = CURDATE()";
@@ -297,10 +289,6 @@ public class HistorialConsultasPanel extends JPanel {
                 return "hc.fecha_consulta >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
             case "Último trimestre":
                 return "hc.fecha_consulta >= DATE_SUB(NOW(), INTERVAL 3 MONTH)";
-            case "Personalizado":
-                // Para personalizado, podrías agregar un diálogo para fechas
-                // Por ahora, retornamos null o implementamos simple
-                return null;
             default:
                 return null;
         }
@@ -330,164 +318,55 @@ public class HistorialConsultasPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(textArea);
         scrollPane.setPreferredSize(new Dimension(400, 200));
 
-        JOptionPane.showMessageDialog(this, scrollPane,
-                "Detalles del Registro", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, scrollPane, "Detalles del Registro", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    // --- GENERAR REPORTE (PDF) ---
     private void generarReporteHistorial() {
-        // Implementación básica: Generar un reporte simple en texto
-        StringBuilder reporte = new StringBuilder();
-        reporte.append("REPORTE DE HISTORIAL DE CONSULTAS\n\n");
-        reporte.append("Fecha de generación: ")
-                .append(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))).append("\n\n");
-
-        for (int i = 0; i < modeloTabla.getRowCount(); i++) {
-            for (int j = 0; j < modeloTabla.getColumnCount(); j++) {
-                reporte.append(modeloTabla.getColumnName(j)).append(": ").append(modeloTabla.getValueAt(i, j))
-                        .append("\n");
-            }
-            reporte.append("----------------------------------------\n");
-        }
-
-        JTextArea textArea = new JTextArea(reporte.toString());
-        textArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        scrollPane.setPreferredSize(new Dimension(600, 400));
-
-        JOptionPane.showMessageDialog(this, scrollPane,
-                "Reporte de Historial", JOptionPane.INFORMATION_MESSAGE);
-
-        // --- INICIO DE CORRECCIÓN ---
-        // Registrar la generación del reporte en logs_sistema
-        registrarLogSistema("INFO",
-                "Generación de reporte de historial. Registros incluidos: " + modeloTabla.getRowCount());
-        // --- FIN DE CORRECCIÓN ---
+        ReportePDFUtils.generarReporteTablaPDF(tablaHistorial, "REPORTE DE HISTORIAL DE CONSULTAS", "Reporte_Historial");
+        registrarLogSistema("INFO", "Reporte de historial generado en PDF.");
     }
 
+    // --- EXPORTAR DATOS (CSV) ---
     private void exportarHistorial() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Exportar Historial");
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-
-        javax.swing.filechooser.FileNameExtensionFilter csvFilter = new javax.swing.filechooser.FileNameExtensionFilter(
-                "Archivos CSV (*.csv)", "csv");
-
-        fileChooser.addChoosableFileFilter(csvFilter);
-        fileChooser.setFileFilter(csvFilter);
-
-        int userSelection = fileChooser.showSaveDialog(this);
-
-        if (userSelection == JFileChooser.APPROVE_OPTION) {
-            File fileToSave = fileChooser.getSelectedFile();
-            String filePath = fileToSave.getAbsolutePath();
-            if (!filePath.endsWith(".csv")) {
-                filePath += ".csv";
-                fileToSave = new File(filePath);
-            }
-
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileToSave))) {
-                // Escribir encabezados
-                for (int i = 0; i < modeloTabla.getColumnCount(); i++) {
-                    writer.write("\"" + modeloTabla.getColumnName(i) + "\"");
-                    if (i < modeloTabla.getColumnCount() - 1) {
-                        writer.write(",");
-                    }
-                }
-                writer.newLine();
-
-                // Escribir datos
-                for (int i = 0; i < modeloTabla.getRowCount(); i++) {
-                    for (int j = 0; j < modeloTabla.getColumnCount(); j++) {
-                        String value = "NULL";
-                        if (modeloTabla.getValueAt(i, j) != null) {
-                            value = modeloTabla.getValueAt(i, j).toString().replace("\"", "\"\"");
-                        }
-                        writer.write("\"" + value + "\"");
-                        if (j < modeloTabla.getColumnCount() - 1) {
-                            writer.write(",");
-                        }
-                    }
-                    writer.newLine();
-                }
-
-                JOptionPane.showMessageDialog(this,
-                        "Historial exportado correctamente a: " + filePath,
-                        "Exportar Historial", JOptionPane.INFORMATION_MESSAGE);
-
-                // --- INICIO DE CORRECCIÓN ---
-                // Registrar la exportación en logs_sistema
-                registrarLogSistema("INFO", "Exportación de historial a CSV. Archivo: " + fileToSave.getName());
-                // --- FIN DE CORRECCIÓN ---
-
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this,
-                        "Error al exportar el historial: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-                registrarLogSistema("ERROR", "Error al exportar historial: " + e.getMessage());
-            }
-        }
+        ExportarUtils.exportarTablaACSV(tablaHistorial, this);
+        registrarLogSistema("INFO", "Datos de historial exportados a CSV.");
     }
 
     private void limpiarHistorial() {
         int confirmacion = JOptionPane.showConfirmDialog(this,
                 "¿Está seguro de que desea limpiar TODO el historial?\n\n" +
-                        "⚠️  ADVERTENCIA: Esta acción eliminará TODOS los registros del historial de consultas.\n" +
-                        "Esta operación NO se puede deshacer.\n\n" +
-                        "Se recomienda hacer un respaldo antes de continuar.",
+                        "ADVERTENCIA: Esta acción eliminará TODOS los registros.\n" +
+                        "Se recomienda exportar los datos antes.",
                 "Limpiar Historial Completo", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (confirmacion == JOptionPane.YES_OPTION) {
-            try {
-                // MODIFICACIÓN: Eliminar TODOS los registros sin filtro de fecha
-                String query = "DELETE FROM historial_consultas";
-                int filasEliminadas = DatabaseUtils.ejecutarUpdate(query);
+            String query = "DELETE FROM historial_consultas";
+            int filasEliminadas = DatabaseUtils.ejecutarUpdate(query);
 
-                if (filasEliminadas > 0) {
-                    JOptionPane.showMessageDialog(this,
-                            "Historial limpiado completamente.\n" +
-                                    "Total de registros eliminados: " + filasEliminadas,
-                            "Limpiar Historial", JOptionPane.INFORMATION_MESSAGE);
-
-                    // --- INICIO DE CORRECCIÓN ---
-                    // Registrar la limpieza completa en logs_sistema
-                    registrarLogSistema("WARNING",
-                            "Limpieza COMPLETA de historial (historial_consultas). Registros eliminados: "
-                                    + filasEliminadas);
-                    // --- FIN DE CORRECCIÓN ---
-
-                    cargarDatosHistorial();
-                } else {
-                    JOptionPane.showMessageDialog(this,
-                            "No se encontraron registros para eliminar.",
-                            "Limpiar Historial", JOptionPane.INFORMATION_MESSAGE);
-                }
-            } catch (Exception e) {
+            if (filasEliminadas > 0) {
                 JOptionPane.showMessageDialog(this,
-                        "Error al limpiar el historial: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-                registrarLogSistema("ERROR", "Error al limpiar historial: " + e.getMessage());
+                        "Historial limpiado completamente.\nRegistros eliminados: " + filasEliminadas);
+                registrarLogSistema("WARNING", "Limpieza completa de historial. Registros: " + filasEliminadas);
+                cargarDatosHistorial();
             }
         }
     }
 
     private void mostrarEstadisticas() {
-        // Consulta para obtener estadísticas del historial
         String query = "SELECT 'Total Consultas' as estadistica, COUNT(*) as valor FROM historial_consultas " +
                 "UNION ALL " +
                 "SELECT 'Consultas Hoy', COUNT(*) FROM historial_consultas WHERE DATE(fecha_consulta) = CURDATE() " +
                 "UNION ALL " +
-                "SELECT 'Consultas Última Semana', COUNT(*) FROM historial_consultas WHERE fecha_consulta >= DATE_SUB(NOW(), INTERVAL 7 DAY) "
-                +
+                "SELECT 'Consultas Última Semana', COUNT(*) FROM historial_consultas WHERE fecha_consulta >= DATE_SUB(NOW(), INTERVAL 7 DAY) " +
                 "UNION ALL " +
-                "SELECT 'Tipo Más Consultado', (SELECT tipo_consulta FROM historial_consultas GROUP BY tipo_consulta ORDER BY COUNT(*) DESC LIMIT 1) "
-                +
+                "SELECT 'Tipo Más Consultado', (SELECT tipo_consulta FROM historial_consultas GROUP BY tipo_consulta ORDER BY COUNT(*) DESC LIMIT 1) " +
                 "UNION ALL " +
                 "SELECT 'Usuario Más Activo', (SELECT u.nombre_completo FROM historial_consultas hc INNER JOIN usuarios u ON hc.id_usuario = u.id_usuario GROUP BY hc.id_usuario ORDER BY COUNT(*) DESC LIMIT 1)";
 
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
 
             StringBuilder estadisticas = new StringBuilder();
             estadisticas.append("ESTADÍSTICAS DEL HISTORIAL\n\n");
@@ -499,178 +378,24 @@ public class HistorialConsultasPanel extends JPanel {
                         .append("\n");
             }
 
-            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
-
-            // --- INICIO DE CORRECCIÓN ---
-            // Registrar la consulta de estadísticas en logs_sistema
-            registrarLogSistema("INFO", "Consulta de estadísticas del historial.");
-            // --- FIN DE CORRECCIÓN ---
-
-            JOptionPane.showMessageDialog(this, estadisticas.toString(),
-                    "Estadísticas del Historial", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, estadisticas.toString(), "Estadísticas", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(this,
-                    "Error al obtener estadísticas: " + e.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            registrarLogSistema("ERROR", "Error al obtener estadísticas: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    private void mostrarConsultaAvanzada() {
-        JTextArea txtConsulta = new JTextArea(5, 50);
-        txtConsulta.setFont(new Font("Consolas", Font.PLAIN, 12));
-        JTextArea txtResultado = new JTextArea(10, 50);
-        txtResultado.setEditable(false);
-        txtResultado.setFont(new Font("Consolas", Font.PLAIN, 12));
+    // --- MÉTODOS AUXILIARES ---
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JLabel("Ingrese su consulta SQL (Solo personal autorizado):"), BorderLayout.NORTH);
-        panel.add(new JScrollPane(txtConsulta), BorderLayout.CENTER);
-        panel.add(new JLabel("Resultado:"), BorderLayout.SOUTH);
-        panel.add(new JScrollPane(txtResultado), BorderLayout.SOUTH);
-
-        int option = JOptionPane.showConfirmDialog(this, panel,
-                "Consulta Avanzada", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (option == JOptionPane.OK_OPTION && !txtConsulta.getText().trim().isEmpty()) {
-            String consultaSQL = txtConsulta.getText().trim();
-
-            try {
-                // Ejecutar consulta y mostrar resultados
-                Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-
-                // Verificar si es una consulta SELECT
-                if (consultaSQL.trim().toUpperCase().startsWith("SELECT")) {
-                    ResultSet rs = stmt.executeQuery(consultaSQL);
-
-                    ResultSetMetaData metaData = rs.getMetaData();
-                    int columnCount = metaData.getColumnCount();
-
-                    StringBuilder resultado = new StringBuilder();
-
-                    // Encabezados
-                    for (int i = 1; i <= columnCount; i++) {
-                        resultado.append(String.format("%-25s", metaData.getColumnName(i)));
-                    }
-                    resultado.append("\n");
-                    resultado.append("-".repeat(columnCount * 25)).append("\n");
-
-                    // Datos
-                    int rowCount = 0;
-                    while (rs.next()) {
-                        for (int i = 1; i <= columnCount; i++) {
-                            String valor = rs.getString(i);
-                            resultado.append(String.format("%-25s", valor != null ? valor : "NULL"));
-                        }
-                        resultado.append("\n");
-                        rowCount++;
-                    }
-
-                    resultado.append("\nTotal de registros: ").append(rowCount);
-                    txtResultado.setText(resultado.toString());
-
-                    // --- INICIO DE CORRECCIÓN ---
-                    // Registrar consulta avanzada exitosa en logs_sistema
-                    registrarLogSistema("INFO", "Consulta Avanzada (SELECT) ejecutada. Query: " + consultaSQL
-                            + ". Registros devueltos: " + rowCount);
-                    // --- FIN DE CORRECCIÓN ---
-
-                    rs.close();
-                } else {
-                    // Por motivos de seguridad, SOLO permitimos SELECT desde la interfaz.
-                    txtResultado
-                            .setText("Operación no permitida: solo se permiten consultas SELECT en Consulta Avanzada.");
-                    registrarLogSistema("WARNING",
-                            "Intento de ejecutar consulta no-SELECT en Consulta Avanzada: " + consultaSQL);
-                }
-
-                stmt.close();
-                conn.close();
-
-            } catch (SQLException e) {
-                txtResultado.setText("Error en la consulta: " + e.getMessage());
-
-                // --- INICIO DE CORRECCIÓN ---
-                // Registrar error en consulta avanzada en logs_sistema
-                registrarLogSistema("ERROR",
-                        "Error en Consulta Avanzada. Query: " + consultaSQL + ". Error: " + e.getMessage());
-                // --- FIN DE CORRECCIÓN ---
-            }
-        }
+    private void registrarLogSistema(String tipo, String descripcion) {
+        int idUsuario = 1; // ID Admin por defecto
+        String query = "INSERT INTO logs_sistema (tipo, modulo, descripcion, id_usuario) VALUES (?, ?, ?, ?)";
+        DatabaseUtils.ejecutarUpdate(query, tipo, "Historial", descripcion, idUsuario);
     }
 
-    // --- INICIO DE NUEVO MÉTODO ---
-    /**
-     * Registra una acción en la tabla logs_sistema.
-     * 
-     * @param tipoLog     Tipo de log (INFO, ERROR, WARNING, DEBUG)
-     * @param descripcion Descripción de la acción realizada
-     */
-    private void registrarLogSistema(String tipoLog, String descripcion) {
-        // FIXME: El ID de usuario está hardcodeado.
-        // En una implementación ideal, se obtendría de un objeto Sesion
-        // o se pasaría al constructor del panel.
-        int idUsuario = 1; // Usamos 1 (admin) por defecto, como en el código original.
-
-        String query = "INSERT INTO logs_sistema (tipo, modulo, descripcion, id_usuario) " +
-                "VALUES (?, ?, ?, ?)";
-
-        // Asegurarse de que el tipoLog esté en el ENUM: ('INFO', 'ERROR', 'WARNING',
-        // 'DEBUG')
-        String tipoValido = tipoLog.toUpperCase();
-        if (!java.util.Arrays.asList("INFO", "ERROR", "WARNING", "DEBUG").contains(tipoValido)) {
-            tipoValido = "INFO"; // Default a INFO si no es válido
-        }
-
-        DatabaseUtils.ejecutarUpdate(query,
-                tipoValido,
-                "HistorialConsultas", // El módulo es este panel
-                descripcion,
-                idUsuario);
-    }
-    // --- FIN DE NUEVO MÉTODO ---
-
-    // Método auxiliar para registrar consultas en el historial
     private void registrarConsulta(String tipo, String descripcion, String entidad, String resultado) {
-        // Obtener el ID del usuario actual (hardcoded por ahora, en implementación
-        // real, de sesión)
-        // FIXME: El ID de usuario está hardcodeado.
-        int idUsuario = 1; // Por defecto, admin
-
-        String query = "INSERT INTO historial_consultas (tipo_consulta, descripcion, entidad_consultada, id_usuario, detalles, resultado) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?)";
-
-        DatabaseUtils.ejecutarUpdate(query, tipo, descripcion, entidad, idUsuario, "Consulta desde sistema",
-                resultado);
-    }
-
-    // Método para realizar consultas específicas por tipo
-    public void realizarConsultaClientes(String criterio) {
-        String query = "SELECT * FROM clientes WHERE nombre LIKE ? OR email LIKE ?";
-        String[] parametros = { "%" + criterio + "%", "%" + criterio + "%" };
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaHistorial, query, (Object[]) parametros);
-        registrarConsulta("Clientes", "Búsqueda de clientes: " + criterio, "Tabla: clientes", "Éxito");
-    }
-
-    public void realizarConsultaVehiculos(String criterio) {
-        String query = "SELECT v.*, c.nombre as cliente FROM vehiculos v " +
-                "INNER JOIN clientes c ON v.id_cliente = c.id_cliente " +
-                "WHERE v.placas LIKE ? OR v.marca LIKE ? OR v.modelo LIKE ?";
-        String[] parametros = { "%" + criterio + "%", "%" + criterio + "%", "%" + criterio + "%" };
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaHistorial, query, (Object[]) parametros);
-        registrarConsulta("Vehículos", "Búsqueda de vehículos: " + criterio, "Tabla: vehiculos", "Éxito");
-    }
-
-    public void realizarConsultaServicios(String criterio) {
-        String query = "SELECT s.*, v.placas, c.nombre as cliente FROM servicios s " +
-                "INNER JOIN vehiculos v ON s.id_vehiculo = v.id_vehiculo " +
-                "INNER JOIN clientes c ON v.id_cliente = c.id_cliente " +
-                "WHERE s.descripcion_servicio LIKE ? OR s.estado LIKE ?";
-        String[] parametros = { "%" + criterio + "%", "%" + criterio + "%" };
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaHistorial, query, (Object[]) parametros);
-        registrarConsulta("Servicios", "Búsqueda de servicios: " + criterio, "Tabla: servicios", "Éxito");
+        int idUsuario = 1; // ID Admin por defecto
+        String query = "INSERT INTO historial_consultas (tipo_consulta, descripcion, entidad_consultada, id_usuario, detalles, resultado) VALUES (?, ?, ?, ?, ?, ?)";
+        DatabaseUtils.ejecutarUpdate(query, tipo, descripcion, entidad, idUsuario, "Consulta desde sistema", resultado);
     }
 }
