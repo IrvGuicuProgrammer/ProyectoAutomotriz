@@ -68,6 +68,7 @@ public class ClientesVehiculosPanel extends JPanel {
     private JTabbedPane crearPestanas() {
         JTabbedPane tabs = new JTabbedPane();
         tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tabs.setBackground(new Color(245, 247, 250));
 
         JPanel panelClientes = crearPanelClientes();
         tabs.addTab("Clientes", panelClientes);
@@ -78,15 +79,16 @@ public class ClientesVehiculosPanel extends JPanel {
         return tabs;
     }
 
+    // --- DISEÑO ACTUALIZADO PARA CLIENTES ---
     private JPanel crearPanelClientes() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.setBackground(new Color(245, 247, 250));
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        // Panel de búsqueda
-        JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panelBusqueda.setBackground(Color.WHITE);
-        panelBusqueda.setBorder(new EmptyBorder(0, 0, 10, 0));
+        // 1. Panel Superior (Búsqueda)
+        JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panelSuperior.setBackground(new Color(245, 247, 250));
+        panelSuperior.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         campoBusquedaClientes = new JTextField(20);
         campoBusquedaClientes.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -97,18 +99,22 @@ public class ClientesVehiculosPanel extends JPanel {
         JButton botonBuscarClientes = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
         JButton botonLimpiarClientes = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
 
-        panelBusqueda.add(new JLabel("Buscar cliente:"));
-        panelBusqueda.add(campoBusquedaClientes);
-        panelBusqueda.add(botonBuscarClientes);
-        panelBusqueda.add(botonLimpiarClientes);
+        panelSuperior.add(new JLabel("Buscar cliente:"));
+        panelSuperior.add(campoBusquedaClientes);
+        panelSuperior.add(botonBuscarClientes);
+        panelSuperior.add(botonLimpiarClientes);
 
-        // Tabla de clientes
+        // 2. Panel Central (Tabla con fondo blanco y borde)
+        JPanel panelCentral = new JPanel(new BorderLayout());
+        panelCentral.setBackground(Color.WHITE);
+        panelCentral.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220)),
+                new EmptyBorder(10, 10, 10, 10)));
+
         String[] columnasClientes = { "ID", "Nombre", "Teléfono", "Email", "Dirección", "Fecha Registro", "RFC", "Estado" };
         modeloClientes = new DefaultTableModel(columnasClientes, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
 
         tablaClientes = new JTable(modeloClientes);
@@ -119,24 +125,27 @@ public class ClientesVehiculosPanel extends JPanel {
         tablaClientes.getTableHeader().setForeground(Color.WHITE);
 
         JScrollPane scrollClientes = new JScrollPane(tablaClientes);
+        scrollClientes.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        panelCentral.add(scrollClientes, BorderLayout.CENTER);
 
-        // Panel de botones
-        JPanel panelBotonesClientes = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        panelBotonesClientes.setBackground(Color.WHITE);
+        // 3. Panel Inferior (Botones de acción)
+        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        panelInferior.setBackground(new Color(245, 247, 250));
 
         JButton botonAgregarCliente = crearBotonEstilizado("Agregar Cliente", new Color(40, 167, 69));
         JButton botonEditarCliente = crearBotonEstilizado("Editar Cliente", new Color(255, 193, 7));
         JButton botonEliminarCliente = crearBotonEstilizado("Eliminar Cliente", new Color(220, 53, 69));
         JButton botonReporteClientes = crearBotonEstilizado("Reporte PDF", new Color(23, 162, 184)); 
 
-        panelBotonesClientes.add(botonAgregarCliente);
-        panelBotonesClientes.add(botonEditarCliente);
-        panelBotonesClientes.add(botonEliminarCliente);
-        panelBotonesClientes.add(botonReporteClientes);
+        panelInferior.add(botonAgregarCliente);
+        panelInferior.add(botonEditarCliente);
+        panelInferior.add(botonEliminarCliente);
+        panelInferior.add(botonReporteClientes);
 
-        panel.add(panelBusqueda, BorderLayout.NORTH);
-        panel.add(scrollClientes, BorderLayout.CENTER);
-        panel.add(panelBotonesClientes, BorderLayout.SOUTH);
+        // Estructura final del tab
+        panel.add(panelSuperior, BorderLayout.NORTH);
+        panel.add(panelCentral, BorderLayout.CENTER);
+        panel.add(panelInferior, BorderLayout.SOUTH);
 
         // Acciones
         botonBuscarClientes.addActionListener(e -> buscarClientes());
@@ -152,15 +161,16 @@ public class ClientesVehiculosPanel extends JPanel {
         return panel;
     }
 
+    // --- DISEÑO ACTUALIZADO PARA VEHÍCULOS ---
     private JPanel crearPanelVehiculos() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.setBackground(new Color(245, 247, 250));
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        // Panel de búsqueda (Diseño Original Restaurado)
-        JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panelBusqueda.setBackground(Color.WHITE);
-        panelBusqueda.setBorder(new EmptyBorder(0, 0, 10, 0));
+        // 1. Panel Superior
+        JPanel panelSuperior = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        panelSuperior.setBackground(new Color(245, 247, 250));
+        panelSuperior.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         campoBusquedaVehiculos = new JTextField(20);
         campoBusquedaVehiculos.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -171,18 +181,22 @@ public class ClientesVehiculosPanel extends JPanel {
         JButton botonBuscarVehiculos = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
         JButton botonLimpiarVehiculos = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
 
-        panelBusqueda.add(new JLabel("Buscar vehículo:"));
-        panelBusqueda.add(campoBusquedaVehiculos);
-        panelBusqueda.add(botonBuscarVehiculos);
-        panelBusqueda.add(botonLimpiarVehiculos);
+        panelSuperior.add(new JLabel("Buscar vehículo:"));
+        panelSuperior.add(campoBusquedaVehiculos);
+        panelSuperior.add(botonBuscarVehiculos);
+        panelSuperior.add(botonLimpiarVehiculos);
 
-        // Tabla de vehículos
+        // 2. Panel Central
+        JPanel panelCentral = new JPanel(new BorderLayout());
+        panelCentral.setBackground(Color.WHITE);
+        panelCentral.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220)),
+                new EmptyBorder(10, 10, 10, 10)));
+
         String[] columnasVehiculos = { "ID", "Cliente", "Placas", "Marca", "Modelo", "Año", "Color", "VIN" };
         modeloVehiculos = new DefaultTableModel(columnasVehiculos, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
+            public boolean isCellEditable(int row, int column) { return false; }
         };
 
         tablaVehiculos = new JTable(modeloVehiculos);
@@ -193,10 +207,12 @@ public class ClientesVehiculosPanel extends JPanel {
         tablaVehiculos.getTableHeader().setForeground(Color.WHITE);
 
         JScrollPane scrollVehiculos = new JScrollPane(tablaVehiculos);
+        scrollVehiculos.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+        panelCentral.add(scrollVehiculos, BorderLayout.CENTER);
 
-        // Panel de botones (Diseño Original Restaurado)
-        JPanel panelBotonesVehiculos = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-        panelBotonesVehiculos.setBackground(Color.WHITE);
+        // 3. Panel Inferior
+        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        panelInferior.setBackground(new Color(245, 247, 250));
 
         JButton botonAgregarVehiculo = crearBotonEstilizado("Agregar Vehículo", new Color(40, 167, 69));
         JButton botonEditarVehiculo = crearBotonEstilizado("Editar Vehículo", new Color(255, 193, 7));
@@ -204,15 +220,16 @@ public class ClientesVehiculosPanel extends JPanel {
         JButton botonHistorialVehiculo = crearBotonEstilizado("Historial", new Color(108, 117, 125)); 
         JButton botonReporteVehiculos = crearBotonEstilizado("Reporte PDF", new Color(23, 162, 184));
 
-        panelBotonesVehiculos.add(botonAgregarVehiculo);
-        panelBotonesVehiculos.add(botonEditarVehiculo);
-        panelBotonesVehiculos.add(botonEliminarVehiculo);
-        panelBotonesVehiculos.add(botonHistorialVehiculo);
-        panelBotonesVehiculos.add(botonReporteVehiculos);
+        panelInferior.add(botonAgregarVehiculo);
+        panelInferior.add(botonEditarVehiculo);
+        panelInferior.add(botonEliminarVehiculo);
+        panelInferior.add(botonHistorialVehiculo);
+        panelInferior.add(botonReporteVehiculos);
 
-        panel.add(panelBusqueda, BorderLayout.NORTH);
-        panel.add(scrollVehiculos, BorderLayout.CENTER);
-        panel.add(panelBotonesVehiculos, BorderLayout.SOUTH);
+        // Estructura Final
+        panel.add(panelSuperior, BorderLayout.NORTH);
+        panel.add(panelCentral, BorderLayout.CENTER);
+        panel.add(panelInferior, BorderLayout.SOUTH);
 
         // Acciones
         botonBuscarVehiculos.addActionListener(e -> buscarVehiculos());
@@ -228,6 +245,69 @@ public class ClientesVehiculosPanel extends JPanel {
 
         return panel;
     }
+
+    private JPanel crearPanelInferior() {
+        // CAMBIO: Alineación centrada para los botones de Imprimir y Exportar
+        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        panelInferior.setBackground(new Color(245, 247, 250)); 
+
+        JButton botonImprimir = crearBotonEstilizado("Imprimir Vista Actual", new Color(108, 117, 125));
+        JButton botonExportar = crearBotonEstilizado("Exportar a Excel (CSV)", new Color(25, 135, 84));
+
+        panelInferior.add(botonImprimir);
+        panelInferior.add(botonExportar);
+
+        botonImprimir.addActionListener(e -> imprimirVista());
+        
+        botonExportar.addActionListener(e -> {
+            String[] opciones = {"Clientes", "Vehículos"};
+            int seleccion = JOptionPane.showOptionDialog(this, "¿Qué datos desea exportar?", "Exportar Datos",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
+
+            if (seleccion == 0) {
+                ExportarUtils.exportarTablaACSV(tablaClientes, this);
+            } else if (seleccion == 1) {
+                ExportarUtils.exportarTablaACSV(tablaVehiculos, this);
+            }
+        });
+
+        return panelInferior;
+    }
+
+    private JButton crearBotonEstilizado(String texto, Color color) {
+        JButton boton = new JButton(texto) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                if (getModel().isPressed()) {
+                    g2.setColor(color.darker());
+                } else if (getModel().isRollover()) {
+                    g2.setColor(color.brighter());
+                } else {
+                    g2.setColor(color);
+                }
+
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                super.paintComponent(g);
+            }
+        };
+
+        boton.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        boton.setForeground(Color.WHITE);
+        boton.setBorderPainted(false);
+        boton.setFocusPainted(false);
+        boton.setContentAreaFilled(false);
+        boton.setPreferredSize(new Dimension(160, 35));
+        boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        return boton;
+    }
+
+    // ===============================================================
+    // LÓGICA DE NEGOCIO
+    // ===============================================================
 
     private void buscarVehiculos() {
         String textoBusqueda = campoBusquedaVehiculos.getText().trim();
@@ -245,7 +325,6 @@ public class ClientesVehiculosPanel extends JPanel {
 
         try {
             conn = DatabaseConnection.getConnection();
-            // Corrección aplicada: Búsqueda flexible SIN pedir columna estado
             String sql = "SELECT v.id_vehiculo, c.nombre, v.placas, v.marca, v.modelo, v.año, v.color, v.vin " +
                          "FROM vehiculos v JOIN clientes c ON v.id_cliente = c.id_cliente " +
                          "WHERE (v.marca LIKE ? OR v.placas LIKE ? OR v.modelo LIKE ?)";
@@ -298,37 +377,6 @@ public class ClientesVehiculosPanel extends JPanel {
         String desc = marca + " " + modelo + " (" + placas + ")";
         JOptionPane.showMessageDialog(this, "Historial de servicios para:\n" + desc + "\n\n(Aquí se mostrará el historial completo de servicios)", "Historial", JOptionPane.INFORMATION_MESSAGE);
     }
-
-    private JPanel crearPanelInferior() {
-        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        panelInferior.setBackground(new Color(245, 247, 250));
-
-        JButton botonImprimir = crearBotonEstilizado("Imprimir Vista Actual", new Color(108, 117, 125));
-        JButton botonExportar = crearBotonEstilizado("Exportar a Excel (CSV)", new Color(25, 135, 84));
-
-        panelInferior.add(botonImprimir);
-        panelInferior.add(botonExportar);
-
-        botonImprimir.addActionListener(e -> imprimirVista());
-        
-        botonExportar.addActionListener(e -> {
-            String[] opciones = {"Clientes", "Vehículos"};
-            int seleccion = JOptionPane.showOptionDialog(this, "¿Qué datos desea exportar?", "Exportar Datos",
-                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
-
-            if (seleccion == 0) {
-                ExportarUtils.exportarTablaACSV(tablaClientes, this);
-            } else if (seleccion == 1) {
-                ExportarUtils.exportarTablaACSV(tablaVehiculos, this);
-            }
-        });
-
-        return panelInferior;
-    }
-
-    // ===============================================================
-    // LÓGICA DE CARGA Y CRUD
-    // ===============================================================
 
     private void cargarDatosClientes() {
         modeloClientes.setRowCount(0);
@@ -418,7 +466,6 @@ public class ClientesVehiculosPanel extends JPanel {
 
         try {
             conn = DatabaseConnection.getConnection();
-            // Corrección aplicada: Query limpio, sin buscar columna 'estado' en vehículos
             String sql = "SELECT v.id_vehiculo, c.nombre, v.placas, v.marca, v.modelo, v.año, v.color, v.vin " +
                          "FROM vehiculos v JOIN clientes c ON v.id_cliente = c.id_cliente";
             stmt = conn.createStatement();
@@ -626,7 +673,6 @@ public class ClientesVehiculosPanel extends JPanel {
                     return;
                 }
 
-                // Corrección aplicada: Eliminado 'estado' del INSERT
                 String sql = "INSERT INTO vehiculos (id_cliente, placas, marca, modelo, año, color, vin) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 
                 if (DatabaseUtils.ejecutarUpdate(sql, idCliente, placas, marca, modelo, anio, color, vin) > 0) {
@@ -726,7 +772,6 @@ public class ClientesVehiculosPanel extends JPanel {
                 "Confirmar Eliminación de Vehículo", JOptionPane.YES_NO_OPTION);
 
         if (confirmacion == JOptionPane.YES_OPTION) {
-            // Corrección aplicada: Borrado físico (DELETE)
             String sql = "DELETE FROM vehiculos WHERE id_vehiculo = ?";
             
             if (DatabaseUtils.ejecutarUpdate(sql, id) > 0) {
@@ -760,29 +805,6 @@ public class ClientesVehiculosPanel extends JPanel {
             DatabaseUtils.cerrarRecursos(conn, stmt, rs);
         }
         return id;
-    }
-
-    private JButton crearBotonEstilizado(String texto, Color color) {
-        JButton button = new JButton(texto);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        button.setBackground(color);
-        button.setForeground(Color.WHITE);
-        button.setFocusPainted(false);
-        button.setBorder(new EmptyBorder(8, 15, 8, 15));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.putClientProperty("JButton.buttonType", "roundRect"); 
-
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(color.darker());
-            }
-
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(color);
-            }
-        });
-
-        return button;
     }
 
     private void imprimirVista() {

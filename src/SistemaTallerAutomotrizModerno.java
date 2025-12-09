@@ -159,7 +159,7 @@ public class SistemaTallerAutomotrizModerno {
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 new EmptyBorder(12, 15, 12, 15)));
         
-        JButton togglePasswordBtn = new JButton("👁");
+        JButton togglePasswordBtn = new JButton("");
         togglePasswordBtn.setPreferredSize(new Dimension(40, 40));
         togglePasswordBtn.setBackground(Color.WHITE);
         togglePasswordBtn.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
