@@ -4,7 +4,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.awt.Component; // <--- ¡CORRECCIÓN AÑADIDA!
+import java.awt.Component; 
 
 public class ExportarUtils {
 

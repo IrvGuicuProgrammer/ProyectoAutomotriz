@@ -3,11 +3,13 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.awt.print.*;
+import java.awt.print.PrinterException;
+import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.sql.*;
 
 public class ClientesVehiculosPanel extends JPanel {
     private JTable tablaClientes;
@@ -16,6 +18,7 @@ public class ClientesVehiculosPanel extends JPanel {
     private DefaultTableModel modeloVehiculos;
     private JTextField campoBusquedaClientes;
     private JTextField campoBusquedaVehiculos;
+    private JTabbedPane pestañas;
 
     public ClientesVehiculosPanel() {
         inicializarComponentes();
@@ -37,7 +40,7 @@ public class ClientesVehiculosPanel extends JPanel {
         panelPrincipal.setBorder(new EmptyBorder(20, 20, 20, 20));
 
         // Panel central con pestañas
-        JTabbedPane pestañas = crearPestanas();
+        pestañas = crearPestanas();
         panelPrincipal.add(pestañas, BorderLayout.CENTER);
 
         // Panel inferior con botones generales
@@ -63,16 +66,16 @@ public class ClientesVehiculosPanel extends JPanel {
     }
 
     private JTabbedPane crearPestanas() {
-        JTabbedPane pestañas = new JTabbedPane();
-        pestañas.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 14));
 
         JPanel panelClientes = crearPanelClientes();
-        pestañas.addTab("Clientes", panelClientes);
+        tabs.addTab("Clientes", panelClientes);
 
         JPanel panelVehiculos = crearPanelVehiculos();
-        pestañas.addTab("Vehículos", panelVehiculos);
+        tabs.addTab("Vehículos", panelVehiculos);
 
-        return pestañas;
+        return tabs;
     }
 
     private JPanel crearPanelClientes() {
@@ -91,7 +94,7 @@ public class ClientesVehiculosPanel extends JPanel {
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 new EmptyBorder(8, 12, 8, 12)));
 
-        JButton botonBuscarClientes = crearBotonEstilizado("Buscar Cliente", new Color(30, 60, 114));
+        JButton botonBuscarClientes = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
         JButton botonLimpiarClientes = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
 
         panelBusqueda.add(new JLabel("Buscar cliente:"));
@@ -124,10 +127,12 @@ public class ClientesVehiculosPanel extends JPanel {
         JButton botonAgregarCliente = crearBotonEstilizado("Agregar Cliente", new Color(40, 167, 69));
         JButton botonEditarCliente = crearBotonEstilizado("Editar Cliente", new Color(255, 193, 7));
         JButton botonEliminarCliente = crearBotonEstilizado("Eliminar Cliente", new Color(220, 53, 69));
+        JButton botonReporteClientes = crearBotonEstilizado("Reporte PDF", new Color(23, 162, 184)); 
 
         panelBotonesClientes.add(botonAgregarCliente);
         panelBotonesClientes.add(botonEditarCliente);
         panelBotonesClientes.add(botonEliminarCliente);
+        panelBotonesClientes.add(botonReporteClientes);
 
         panel.add(panelBusqueda, BorderLayout.NORTH);
         panel.add(scrollClientes, BorderLayout.CENTER);
@@ -142,6 +147,7 @@ public class ClientesVehiculosPanel extends JPanel {
         botonAgregarCliente.addActionListener(e -> agregarCliente());
         botonEditarCliente.addActionListener(e -> editarCliente());
         botonEliminarCliente.addActionListener(e -> eliminarCliente());
+        botonReporteClientes.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaClientes, "REPORTE DE CLIENTES - TALLER CASA DEL MOTOR", "Reporte_Clientes"));
 
         return panel;
     }
@@ -151,6 +157,7 @@ public class ClientesVehiculosPanel extends JPanel {
         panel.setBackground(Color.WHITE);
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
+        // Panel de búsqueda (Diseño Original Restaurado)
         JPanel panelBusqueda = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panelBusqueda.setBackground(Color.WHITE);
         panelBusqueda.setBorder(new EmptyBorder(0, 0, 10, 0));
@@ -161,7 +168,7 @@ public class ClientesVehiculosPanel extends JPanel {
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 new EmptyBorder(8, 12, 8, 12)));
 
-        JButton botonBuscarVehiculos = crearBotonEstilizado("Buscar Vehículo", new Color(30, 60, 114));
+        JButton botonBuscarVehiculos = crearBotonEstilizado("Buscar", new Color(30, 60, 114));
         JButton botonLimpiarVehiculos = crearBotonEstilizado("Limpiar", new Color(100, 100, 100));
 
         panelBusqueda.add(new JLabel("Buscar vehículo:"));
@@ -169,7 +176,8 @@ public class ClientesVehiculosPanel extends JPanel {
         panelBusqueda.add(botonBuscarVehiculos);
         panelBusqueda.add(botonLimpiarVehiculos);
 
-        String[] columnasVehiculos = { "ID", "Placas", "Marca", "Modelo", "Año", "Color", "Cliente", "VIN", "Kilometraje" };
+        // Tabla de vehículos
+        String[] columnasVehiculos = { "ID", "Cliente", "Placas", "Marca", "Modelo", "Año", "Color", "VIN" };
         modeloVehiculos = new DefaultTableModel(columnasVehiculos, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -186,23 +194,27 @@ public class ClientesVehiculosPanel extends JPanel {
 
         JScrollPane scrollVehiculos = new JScrollPane(tablaVehiculos);
 
+        // Panel de botones (Diseño Original Restaurado)
         JPanel panelBotonesVehiculos = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         panelBotonesVehiculos.setBackground(Color.WHITE);
 
         JButton botonAgregarVehiculo = crearBotonEstilizado("Agregar Vehículo", new Color(40, 167, 69));
         JButton botonEditarVehiculo = crearBotonEstilizado("Editar Vehículo", new Color(255, 193, 7));
         JButton botonEliminarVehiculo = crearBotonEstilizado("Eliminar Vehículo", new Color(220, 53, 69));
-        JButton botonHistorialVehiculo = crearBotonEstilizado("Historial", new Color(108, 117, 125));
+        JButton botonHistorialVehiculo = crearBotonEstilizado("Historial", new Color(108, 117, 125)); 
+        JButton botonReporteVehiculos = crearBotonEstilizado("Reporte PDF", new Color(23, 162, 184));
 
         panelBotonesVehiculos.add(botonAgregarVehiculo);
         panelBotonesVehiculos.add(botonEditarVehiculo);
         panelBotonesVehiculos.add(botonEliminarVehiculo);
         panelBotonesVehiculos.add(botonHistorialVehiculo);
+        panelBotonesVehiculos.add(botonReporteVehiculos);
 
         panel.add(panelBusqueda, BorderLayout.NORTH);
         panel.add(scrollVehiculos, BorderLayout.CENTER);
         panel.add(panelBotonesVehiculos, BorderLayout.SOUTH);
 
+        // Acciones
         botonBuscarVehiculos.addActionListener(e -> buscarVehiculos());
         botonLimpiarVehiculos.addActionListener(e -> {
             campoBusquedaVehiculos.setText("");
@@ -212,30 +224,94 @@ public class ClientesVehiculosPanel extends JPanel {
         botonEditarVehiculo.addActionListener(e -> editarVehiculo());
         botonEliminarVehiculo.addActionListener(e -> eliminarVehiculo());
         botonHistorialVehiculo.addActionListener(e -> verHistorialVehiculo());
+        botonReporteVehiculos.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaVehiculos, "REPORTE DE VEHÍCULOS - TALLER CASA DEL MOTOR", "Reporte_Vehiculos"));
 
         return panel;
     }
 
+    private void buscarVehiculos() {
+        String textoBusqueda = campoBusquedaVehiculos.getText().trim();
+
+        if (textoBusqueda.isEmpty()) {
+            cargarDatosVehiculos();
+            return;
+        }
+
+        modeloVehiculos.setRowCount(0);
+
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            // Corrección aplicada: Búsqueda flexible SIN pedir columna estado
+            String sql = "SELECT v.id_vehiculo, c.nombre, v.placas, v.marca, v.modelo, v.año, v.color, v.vin " +
+                         "FROM vehiculos v JOIN clientes c ON v.id_cliente = c.id_cliente " +
+                         "WHERE (v.marca LIKE ? OR v.placas LIKE ? OR v.modelo LIKE ?)";
+
+            stmt = conn.prepareStatement(sql);
+            String parametro = "%" + textoBusqueda + "%";
+            stmt.setString(1, parametro);
+            stmt.setString(2, parametro);
+            stmt.setString(3, parametro);
+
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Object[] fila = new Object[] {
+                        rs.getInt("id_vehiculo"),
+                        rs.getString("nombre"),
+                        rs.getString("placas"),
+                        rs.getString("marca"),
+                        rs.getString("modelo"),
+                        rs.getInt("año"),
+                        rs.getString("color"),
+                        rs.getString("vin")
+                };
+                modeloVehiculos.addRow(fila);
+            }
+
+            if (modeloVehiculos.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "No se encontraron vehículos que coincidan con: " + textoBusqueda, "Búsqueda", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al buscar vehículos: " + e.getMessage(), "Error DB", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        }
+    }
+
+    private void verHistorialVehiculo() {
+        int fila = tablaVehiculos.getSelectedRow();
+        if (fila == -1) {
+            JOptionPane.showMessageDialog(this, "Selecciona un vehículo para ver su historial.");
+            return;
+        }
+        
+        String marca = (String) modeloVehiculos.getValueAt(fila, 3);
+        String modelo = (String) modeloVehiculos.getValueAt(fila, 4);
+        String placas = (String) modeloVehiculos.getValueAt(fila, 2);
+        
+        String desc = marca + " " + modelo + " (" + placas + ")";
+        JOptionPane.showMessageDialog(this, "Historial de servicios para:\n" + desc + "\n\n(Aquí se mostrará el historial completo de servicios)", "Historial", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private JPanel crearPanelInferior() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        panel.setBackground(new Color(245, 247, 250));
-        panel.setBorder(new EmptyBorder(20, 0, 10, 0));
+        JPanel panelInferior = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        panelInferior.setBackground(new Color(245, 247, 250));
 
-        JButton botonReporteClientes = crearBotonEstilizado("Reporte Clientes", new Color(30, 60, 114));
-        JButton botonReporteVehiculos = crearBotonEstilizado("Reporte Vehículos", new Color(30, 60, 114));
-        JButton botonExportar = crearBotonEstilizado("Exportar Datos", new Color(40, 167, 69));
-        JButton botonImprimirClientes = crearBotonEstilizado("Imprimir Clientes", new Color(0, 123, 255));
-        JButton botonImprimirVehiculos = crearBotonEstilizado("Imprimir Vehículos", new Color(0, 123, 255));
+        JButton botonImprimir = crearBotonEstilizado("Imprimir Vista Actual", new Color(108, 117, 125));
+        JButton botonExportar = crearBotonEstilizado("Exportar a Excel (CSV)", new Color(25, 135, 84));
 
-        panel.add(botonReporteClientes);
-        panel.add(botonReporteVehiculos);
-        panel.add(botonExportar);
-        panel.add(botonImprimirClientes);
-        panel.add(botonImprimirVehiculos);
+        panelInferior.add(botonImprimir);
+        panelInferior.add(botonExportar);
 
-        // ACCIONES MODIFICADAS
+        botonImprimir.addActionListener(e -> imprimirVista());
+        
         botonExportar.addActionListener(e -> {
-            // Preguntar qué tabla exportar
             String[] opciones = {"Clientes", "Vehículos"};
             int seleccion = JOptionPane.showOptionDialog(this, "¿Qué datos desea exportar?", "Exportar Datos",
                     JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, opciones, opciones[0]);
@@ -247,164 +323,149 @@ public class ClientesVehiculosPanel extends JPanel {
             }
         });
 
-        // ACCIONES DE REPORTE (PDF)
-        botonReporteClientes.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaClientes, "REPORTE DE CLIENTES - TALLER CASA DEL MOTOR", "Reporte_Clientes"));
-        botonReporteVehiculos.addActionListener(e -> ReportePDFUtils.generarReporteTablaPDF(tablaVehiculos, "REPORTE DE VEHÍCULOS - TALLER DEL MOTOR", "Reporte_Vehiculos"));
-
-        // ACCIONES DE IMPRESIÓN (impresora física, ya implementadas)
-        botonImprimirClientes.addActionListener(e -> imprimirTabla(tablaClientes, "REPORTE DE CLIENTES - TALLER DEL MOTOR"));
-        botonImprimirVehiculos.addActionListener(e -> imprimirTabla(tablaVehiculos, "REPORTE DE VEHÍCULOS - TALLER DEL MOTOR"));
-
-        return panel;
+        return panelInferior;
     }
 
-    private JButton crearBotonEstilizado(String texto, Color color) {
-        JButton boton = new JButton(texto) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    // ===============================================================
+    // LÓGICA DE CARGA Y CRUD
+    // ===============================================================
 
-                if (getModel().isPressed()) {
-                    g2.setColor(color.darker());
-                } else if (getModel().isRollover()) {
-                    g2.setColor(color.brighter());
-                } else {
-                    g2.setColor(color);
-                }
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-
-                super.paintComponent(g);
-            }
-        };
-
-        boton.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        boton.setForeground(Color.WHITE);
-        boton.setBorderPainted(false);
-        boton.setFocusPainted(false);
-        boton.setContentAreaFilled(false);
-        boton.setPreferredSize(new Dimension(180, 40));
-        boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        return boton;
-    }
-
-    // ==================== IMPRESIÓN DE TABLAS (MÉTODO EXISTENTE) ====================
-    private void imprimirTabla(JTable tabla, String tituloReporte) {
-        PrinterJob job = PrinterJob.getPrinterJob();
-        job.setJobName(tituloReporte);
-
-        Printable printable = new Printable() {
-            @Override
-            public int print(Graphics graphics, PageFormat pageFormat, int pageIndex) {
-                if (pageIndex > 0) return Printable.NO_SUCH_PAGE;
-
-                Graphics2D g2d = (Graphics2D) graphics;
-                g2d.translate(pageFormat.getImageableX() + 20, pageFormat.getImageableY() + 20);
-
-                // Fuentes
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 20));
-                g2d.drawString(tituloReporte, 0, 20);
-
-                g2d.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                g2d.drawString("Taller Mecánico Juan", 0, 50);
-                g2d.drawString("Fecha: " + new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()), 0, 70);
-
-                g2d.drawLine(0, 85, 540, 85);
-
-                // Encabezados
-                g2d.setFont(new Font("Segoe UI", Font.BOLD, 10));
-                int y = 110;
-                int[] anchos = obtenerAnchosColumnas(tabla);
-
-                for (int i = 0; i < tabla.getColumnCount(); i++) {
-                    g2d.drawString(tabla.getColumnName(i), i == 0 ? 5 : calcularX(i, anchos), y);
-                }
-
-                g2d.drawLine(0, y + 20, 540, y + 20);
-                y += 30;
-
-                // Filas
-                g2d.setFont(new Font("Segoe UI", Font.PLAIN, 9));
-                int filasPorPagina = 45;
-                int inicio = 0;
-                int fin = Math.min(tabla.getRowCount(), inicio + filasPorPagina);
-
-                for (int row = inicio; row < fin; row++) {
-                    int x = 0;
-                    for (int col = 0; col < tabla.getColumnCount(); col++) {
-                        Object valor = tabla.getValueAt(row, col);
-                        String texto = valor != null ? valor.toString() : "";
-                        g2d.drawString(ajustarTexto(texto, anchos[col] - 10), x + 5, y);
-                        x += anchos[col];
-                    }
-                    y += 18;
-                    if (y > 750) break;
-                }
-
-                // Pie de página
-                g2d.setFont(new Font("Segoe UI", Font.ITALIC, 9));
-                g2d.setColor(Color.GRAY);
-                g2d.drawString("Total de registros: " + tabla.getRowCount() + " | Impreso el " + new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()), 0, 780);
-
-                return Printable.PAGE_EXISTS;
-            }
-        };
-
-        job.setPrintable(printable);
-
-        if (job.printDialog()) {
-            try {
-                job.print();
-                JOptionPane.showMessageDialog(this, "Reporte enviado a la impresora.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
-            } catch (PrinterException ex) {
-                JOptionPane.showMessageDialog(this, "Error al imprimir:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
-
-    private int[] obtenerAnchosColumnas(JTable tabla) {
-        if (tabla == tablaClientes) {
-            return new int[]{50, 130, 100, 150, 150, 90, 100, 70};
-        } else {
-            return new int[]{50, 90, 90, 100, 60, 80, 120, 100, 90};
-        }
-    }
-
-    private int calcularX(int columna, int[] anchos) {
-        int x = 0;
-        for (int i = 0; i < columna; i++) x += anchos[i];
-        return x + 5;
-    }
-
-    private String ajustarTexto(String texto, int max) {
-        if (texto.length() > max / 6) {
-            return texto.substring(0, Math.min(texto.length(), max / 6 - 3)) + "...";
-        }
-        return texto;
-    }
-
-    // ==================== CLIENTES ====================
     private void cargarDatosClientes() {
-        String query = "SELECT id_cliente, nombre, telefono, email, direccion, " +
-                "DATE_FORMAT(fecha_registro, '%Y-%m-%d') as fecha_registro, rfc, estado FROM clientes ORDER BY id_cliente";
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaClientes, query);
+        modeloClientes.setRowCount(0);
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            String sql = "SELECT id_cliente, nombre, telefono, email, direccion, fecha_registro, rfc, estado FROM clientes WHERE estado = 'Activo'";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                Object[] fila = new Object[] {
+                        rs.getInt("id_cliente"),
+                        rs.getString("nombre"),
+                        rs.getString("telefono"),
+                        rs.getString("email"),
+                        rs.getString("direccion"),
+                        rs.getDate("fecha_registro"),
+                        rs.getString("rfc"),
+                        rs.getString("estado")
+                };
+                modeloClientes.addRow(fila);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al cargar clientes: " + e.getMessage(), "Error DB", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        }
     }
 
     private void buscarClientes() {
-        String busqueda = campoBusquedaClientes.getText().trim();
-        if (busqueda.isEmpty()) {
+        String textoBusqueda = campoBusquedaClientes.getText().trim();
+        modeloClientes.setRowCount(0);
+
+        if (textoBusqueda.isEmpty()) {
             cargarDatosClientes();
             return;
         }
 
-        String query = "SELECT id_cliente, nombre, telefono, email, direccion, " +
-                "DATE_FORMAT(fecha_registro, '%Y-%m-%d') as fecha_registro, rfc, estado FROM clientes " +
-                "WHERE nombre LIKE ? OR telefono LIKE ? OR email LIKE ? OR rfc LIKE ? ORDER BY id_cliente";
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
 
-        String param = "%" + busqueda + "%";
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaClientes, query, param, param, param, param);
+        try {
+            conn = DatabaseConnection.getConnection();
+            String sql = "SELECT id_cliente, nombre, telefono, email, direccion, fecha_registro, rfc, estado " +
+                         "FROM clientes WHERE estado = 'Activo' AND (nombre LIKE ? OR telefono LIKE ? OR email LIKE ?)";
+            
+            stmt = conn.prepareStatement(sql);
+            String likeText = "%" + textoBusqueda + "%";
+            stmt.setString(1, likeText);
+            stmt.setString(2, likeText);
+            stmt.setString(3, likeText);
+
+            rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Object[] fila = new Object[] {
+                        rs.getInt("id_cliente"),
+                        rs.getString("nombre"),
+                        rs.getString("telefono"),
+                        rs.getString("email"),
+                        rs.getString("direccion"),
+                        rs.getDate("fecha_registro"),
+                        rs.getString("rfc"),
+                        rs.getString("estado")
+                };
+                modeloClientes.addRow(fila);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al buscar clientes: " + e.getMessage(), "Error DB", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        }
+    }
+
+    private void cargarDatosVehiculos() {
+        modeloVehiculos.setRowCount(0);
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            // Corrección aplicada: Query limpio, sin buscar columna 'estado' en vehículos
+            String sql = "SELECT v.id_vehiculo, c.nombre, v.placas, v.marca, v.modelo, v.año, v.color, v.vin " +
+                         "FROM vehiculos v JOIN clientes c ON v.id_cliente = c.id_cliente";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                Object[] fila = new Object[] {
+                        rs.getInt("id_vehiculo"),
+                        rs.getString("nombre"),
+                        rs.getString("placas"),
+                        rs.getString("marca"),
+                        rs.getString("modelo"),
+                        rs.getInt("año"),
+                        rs.getString("color"),
+                        rs.getString("vin")
+                };
+                modeloVehiculos.addRow(fila);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error al cargar vehículos: " + e.getMessage(), "Error DB", JOptionPane.ERROR_MESSAGE);
+        } finally {
+            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        }
+    }
+
+    private List<String> obtenerClientes() {
+        List<String> clientes = new ArrayList<>();
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            String sql = "SELECT id_cliente, nombre FROM clientes WHERE estado = 'Activo' ORDER BY nombre";
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                clientes.add(rs.getInt("id_cliente") + " - " + rs.getString("nombre"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
+        }
+        return clientes;
     }
 
     private void agregarCliente() {
@@ -413,24 +474,35 @@ public class ClientesVehiculosPanel extends JPanel {
         JTextField txtEmail = new JTextField();
         JTextField txtDireccion = new JTextField();
         JTextField txtRFC = new JTextField();
-        JComboBox<String> comboEstado = new JComboBox<>(new String[]{"Activo", "Inactivo"});
 
-        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
-        panel.add(new JLabel("Nombre:")); panel.add(txtNombre);
-        panel.add(new JLabel("Teléfono:")); panel.add(txtTelefono);
-        panel.add(new JLabel("Email:")); panel.add(txtEmail);
-        panel.add(new JLabel("Dirección:")); panel.add(txtDireccion);
-        panel.add(new JLabel("RFC:")); panel.add(txtRFC);
-        panel.add(new JLabel("Estado:")); panel.add(comboEstado);
+        Object[] message = {
+                "Nombre:", txtNombre,
+                "Teléfono:", txtTelefono,
+                "Email:", txtEmail,
+                "Dirección:", txtDireccion,
+                "RFC:", txtRFC
+        };
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "Agregar Cliente", JOptionPane.OK_CANCEL_OPTION);
-        if (result == JOptionPane.OK_OPTION && !txtNombre.getText().trim().isEmpty()) {
-            String sql = "INSERT INTO clientes (nombre, telefono, email, direccion, rfc, estado, fecha_registro) VALUES (?, ?, ?, ?, ?, ?, CURDATE())";
-            int r = DatabaseUtils.ejecutarUpdate(sql, txtNombre.getText().trim(), txtTelefono.getText().trim(),
-                    txtEmail.getText().trim(), txtDireccion.getText().trim(), txtRFC.getText().trim(), comboEstado.getSelectedItem());
-            if (r > 0) {
-                JOptionPane.showMessageDialog(this, "Cliente agregado.");
+        int option = JOptionPane.showConfirmDialog(this, message, "Agregar Nuevo Cliente", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            String nombre = txtNombre.getText().trim();
+            String telefono = txtTelefono.getText().trim();
+            String email = txtEmail.getText().trim();
+            String direccion = txtDireccion.getText().trim();
+            String rfc = txtRFC.getText().trim();
+
+            if (nombre.isEmpty() || telefono.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Nombre y Teléfono son obligatorios.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String sql = "INSERT INTO clientes (nombre, telefono, email, direccion, rfc, estado, fecha_registro) VALUES (?, ?, ?, ?, ?, 'Activo', NOW())";
+            
+            if (DatabaseUtils.ejecutarUpdate(sql, nombre, telefono, email, direccion, rfc) > 0) {
+                JOptionPane.showMessageDialog(this, "Cliente agregado exitosamente.");
                 cargarDatosClientes();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al agregar cliente.", "Error DB", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -438,7 +510,7 @@ public class ClientesVehiculosPanel extends JPanel {
     private void editarCliente() {
         int fila = tablaClientes.getSelectedRow();
         if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un cliente.");
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente para editar.");
             return;
         }
 
@@ -448,26 +520,40 @@ public class ClientesVehiculosPanel extends JPanel {
         JTextField txtEmail = new JTextField((String) modeloClientes.getValueAt(fila, 3));
         JTextField txtDireccion = new JTextField((String) modeloClientes.getValueAt(fila, 4));
         JTextField txtRFC = new JTextField((String) modeloClientes.getValueAt(fila, 6));
+
         JComboBox<String> comboEstado = new JComboBox<>(new String[]{"Activo", "Inactivo"});
         comboEstado.setSelectedItem(modeloClientes.getValueAt(fila, 7));
 
-        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
-        panel.add(new JLabel("Nombre:")); panel.add(txtNombre);
-        panel.add(new JLabel("Teléfono:")); panel.add(txtTelefono);
-        panel.add(new JLabel("Email:")); panel.add(txtEmail);
-        panel.add(new JLabel("Dirección:")); panel.add(txtDireccion);
-        panel.add(new JLabel("RFC:")); panel.add(txtRFC);
-        panel.add(new JLabel("Estado:")); panel.add(comboEstado);
+        Object[] message = {
+                "Nombre:", txtNombre,
+                "Teléfono:", txtTelefono,
+                "Email:", txtEmail,
+                "Dirección:", txtDireccion,
+                "RFC:", txtRFC,
+                "Estado:", comboEstado
+        };
 
-        int result = JOptionPane.showConfirmDialog(this, panel, "Editar Cliente", JOptionPane.OK_CANCEL_OPTION);
-        if (result == JOptionPane.OK_OPTION) {
+        int option = JOptionPane.showConfirmDialog(this, message, "Editar Cliente", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            String nombre = txtNombre.getText().trim();
+            String telefono = txtTelefono.getText().trim();
+            String email = txtEmail.getText().trim();
+            String direccion = txtDireccion.getText().trim();
+            String rfc = txtRFC.getText().trim();
+            String estado = (String) comboEstado.getSelectedItem();
+
+            if (nombre.isEmpty() || telefono.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Nombre y Teléfono son obligatorios.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             String sql = "UPDATE clientes SET nombre=?, telefono=?, email=?, direccion=?, rfc=?, estado=? WHERE id_cliente=?";
-            int r = DatabaseUtils.ejecutarUpdate(sql, txtNombre.getText().trim(), txtTelefono.getText().trim(),
-                    txtEmail.getText().trim(), txtDireccion.getText().trim(), txtRFC.getText().trim(),
-                    comboEstado.getSelectedItem(), id);
-            if (r > 0) {
-                JOptionPane.showMessageDialog(this, "Cliente actualizado.");
+            
+            if (DatabaseUtils.ejecutarUpdate(sql, nombre, telefono, email, direccion, rfc, estado, id) > 0) {
+                JOptionPane.showMessageDialog(this, "Cliente actualizado exitosamente.");
                 cargarDatosClientes();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al actualizar cliente.", "Error DB", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -475,86 +561,82 @@ public class ClientesVehiculosPanel extends JPanel {
     private void eliminarCliente() {
         int fila = tablaClientes.getSelectedRow();
         if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un cliente.");
+            JOptionPane.showMessageDialog(this, "Selecciona un cliente para eliminar.");
             return;
         }
+
         int id = (int) modeloClientes.getValueAt(fila, 0);
         String nombre = (String) modeloClientes.getValueAt(fila, 1);
 
-        if (JOptionPane.showConfirmDialog(this, "¿Eliminar al cliente " + nombre + " y todos sus vehículos?", "Confirmar", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            int r = DatabaseUtils.ejecutarUpdate("DELETE FROM clientes WHERE id_cliente=?", id);
-            if (r > 0) {
-                JOptionPane.showMessageDialog(this, "Cliente eliminado.");
+        int confirmacion = JOptionPane.showConfirmDialog(this,
+                "¿Estás seguro de que deseas dar de baja (desactivar) al cliente " + nombre + "?",
+                "Confirmar Baja de Cliente", JOptionPane.YES_NO_OPTION);
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            String sql = "UPDATE clientes SET estado = 'Inactivo' WHERE id_cliente = ?";
+            
+            if (DatabaseUtils.ejecutarUpdate(sql, id) > 0) {
+                JOptionPane.showMessageDialog(this, "Cliente dado de baja exitosamente.");
                 cargarDatosClientes();
-                cargarDatosVehiculos();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al dar de baja al cliente.", "Error DB", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    // ==================== VEHÍCULOS ====================
-    private void cargarDatosVehiculos() {
-        String query = "SELECT v.id_vehiculo, v.placas, v.marca, v.modelo, v.año, v.color, " +
-                "c.nombre as cliente, v.vin, v.kilometraje_actual " +
-                "FROM vehiculos v INNER JOIN clientes c ON v.id_cliente = c.id_cliente ORDER BY v.id_vehiculo";
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaVehiculos, query);
-    }
-
-    private void buscarVehiculos() {
-        String busqueda = campoBusquedaVehiculos.getText().trim();
-        if (busqueda.isEmpty()) {
-            cargarDatosVehiculos();
-            return;
-        }
-        String query = "SELECT v.id_vehiculo, v.placas, v.marca, v.modelo, v.año, v.color, " +
-                "c.nombre as cliente, v.vin, v.kil  " +
-                "FROM vehiculos v INNER JOIN clientes c ON v.id_cliente = c.id_cliente " +
-                "WHERE v.placas LIKE ? OR v.marca LIKE ? OR v.modelo LIKE ? OR c.nombre LIKE ? OR v.vin LIKE ?";
-        String p = "%" + busqueda + "%";
-        DatabaseUtils.llenarTablaDesdeConsulta(tablaVehiculos, query, p, p, p, p, p);
-    }
-
     private void agregarVehiculo() {
-        List<String> clientes = obtenerListaClientes();
+        List<String> clientes = obtenerClientes();
         if (clientes.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No hay clientes activos.");
+            JOptionPane.showMessageDialog(this, "Debe registrar clientes primero.", "Advertencia", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        JComboBox<String> combo = new JComboBox<>(clientes.toArray(new String[0]));
+        JComboBox<String> comboCliente = new JComboBox<>(clientes.toArray(new String[0]));
         JTextField txtPlacas = new JTextField();
         JTextField txtMarca = new JTextField();
         JTextField txtModelo = new JTextField();
         JTextField txtAnio = new JTextField();
         JTextField txtColor = new JTextField();
         JTextField txtVIN = new JTextField();
-        JTextField txtKm = new JTextField();
 
-        JPanel p = new JPanel(new GridLayout(0, 2, 10, 10));
-        p.add(new JLabel("Cliente:")); p.add(combo);
-        p.add(new JLabel("Placas:")); p.add(txtPlacas);
-        p.add(new JLabel("Marca:")); p.add(txtMarca);
-        p.add(new JLabel("Modelo:")); p.add(txtModelo);
-        p.add(new JLabel("Año:")); p.add(txtAnio);
-        p.add(new JLabel("Color:")); p.add(txtColor);
-        p.add(new JLabel("VIN:")); p.add(txtVIN);
-        p.add(new JLabel("Kilometraje:")); p.add(txtKm);
+        Object[] message = {
+                "Cliente:", comboCliente,
+                "Placas:", txtPlacas,
+                "Marca:", txtMarca,
+                "Modelo:", txtModelo,
+                "Año:", txtAnio,
+                "Color:", txtColor,
+                "VIN:", txtVIN
+        };
 
-        if (JOptionPane.showConfirmDialog(this, p, "Agregar Vehículo", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            if (txtPlacas.getText().trim().isEmpty() || txtMarca.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Placas y Marca son obligatorios.");
-                return;
-            }
-            int idCliente = obtenerIdCliente((String) combo.getSelectedItem());
-            String sql = "INSERT INTO vehiculos (id_cliente, placas, marca, modelo, año, color, vin, kilometraje_actual) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            Object anio = txtAnio.getText().trim().isEmpty() ? null : Integer.valueOf(txtAnio.getText().trim());
-            Object km = txtKm.getText().trim().isEmpty() ? null : Double.valueOf(txtKm.getText().trim());
+        int option = JOptionPane.showConfirmDialog(this, message, "Agregar Nuevo Vehículo", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            try {
+                String clienteSeleccionado = (String) comboCliente.getSelectedItem();
+                int idCliente = Integer.parseInt(clienteSeleccionado.split(" - ")[0]);
+                String placas = txtPlacas.getText().trim();
+                String marca = txtMarca.getText().trim();
+                String modelo = txtModelo.getText().trim();
+                int anio = Integer.parseInt(txtAnio.getText().trim());
+                String color = txtColor.getText().trim();
+                String vin = txtVIN.getText().trim();
 
-            int r = DatabaseUtils.ejecutarUpdate(sql, idCliente, txtPlacas.getText().trim().toUpperCase(),
-                    txtMarca.getText().trim(), txtModelo.getText().trim(), anio, txtColor.getText().trim(),
-                    txtVIN.getText().trim().toUpperCase(), km);
-            if (r > 0) {
-                JOptionPane.showMessageDialog(this, "Vehículo agregado.");
-                cargarDatosVehiculos();
+                if (placas.isEmpty() || marca.isEmpty() || modelo.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Placas, Marca y Modelo son obligatorios.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                // Corrección aplicada: Eliminado 'estado' del INSERT
+                String sql = "INSERT INTO vehiculos (id_cliente, placas, marca, modelo, año, color, vin) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                
+                if (DatabaseUtils.ejecutarUpdate(sql, idCliente, placas, marca, modelo, anio, color, vin) > 0) {
+                    JOptionPane.showMessageDialog(this, "Vehículo agregado exitosamente.");
+                    cargarDatosVehiculos();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al agregar vehículo.", "Error DB", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "El campo Año debe ser un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -562,45 +644,69 @@ public class ClientesVehiculosPanel extends JPanel {
     private void editarVehiculo() {
         int fila = tablaVehiculos.getSelectedRow();
         if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un vehículo.");
+            JOptionPane.showMessageDialog(this, "Selecciona un vehículo para editar.");
             return;
         }
 
-        int id = (int) modeloVehiculos.getValueAt(fila, 0);
-        List<String> clientes = obtenerListaClientes();
-        JComboBox<String> combo = new JComboBox<>(clientes.toArray(new String[0]));
-        combo.setSelectedItem(modeloVehiculos.getValueAt(fila, 6));
+        int idVehiculo = (int) modeloVehiculos.getValueAt(fila, 0);
+        List<String> clientes = obtenerClientes();
 
-        JTextField txtPlacas = new JTextField((String) modeloVehiculos.getValueAt(fila, 1));
-        JTextField txtMarca = new JTextField((String) modeloVehiculos.getValueAt(fila, 2));
-        JTextField txtModelo = new JTextField((String) modeloVehiculos.getValueAt(fila, 3));
-        JTextField txtAnio = new JTextField(modeloVehiculos.getValueAt(fila, 4).toString());
-        JTextField txtColor = new JTextField((String) modeloVehiculos.getValueAt(fila, 5));
+        JComboBox<String> comboCliente = new JComboBox<>(clientes.toArray(new String[0]));
+        String nombreClienteActual = (String) modeloVehiculos.getValueAt(fila, 1);
+        int idClienteActual = getIdClientePorNombre(nombreClienteActual); 
+        
+        for (int i = 0; i < comboCliente.getItemCount(); i++) {
+            String item = comboCliente.getItemAt(i);
+            if (item.startsWith(idClienteActual + " - ")) {
+                comboCliente.setSelectedIndex(i);
+                break;
+            }
+        }
+
+        JTextField txtPlacas = new JTextField((String) modeloVehiculos.getValueAt(fila, 2));
+        JTextField txtMarca = new JTextField((String) modeloVehiculos.getValueAt(fila, 3));
+        JTextField txtModelo = new JTextField((String) modeloVehiculos.getValueAt(fila, 4));
+        JTextField txtAnio = new JTextField(String.valueOf(modeloVehiculos.getValueAt(fila, 5)));
+        JTextField txtColor = new JTextField((String) modeloVehiculos.getValueAt(fila, 6));
         JTextField txtVIN = new JTextField((String) modeloVehiculos.getValueAt(fila, 7));
-        JTextField txtKm = new JTextField(modeloVehiculos.getValueAt(fila, 8).toString());
 
-        JPanel p = new JPanel(new GridLayout(0, 2, 10, 10));
-        p.add(new JLabel("Cliente:")); p.add(combo);
-        p.add(new JLabel("Placas:")); p.add(txtPlacas);
-        p.add(new JLabel("Marca:")); p.add(txtMarca);
-        p.add(new JLabel("Modelo:")); p.add(txtModelo);
-        p.add(new JLabel("Año:")); p.add(txtAnio);
-        p.add(new JLabel("Color:")); p.add(txtColor);
-        p.add(new JLabel("VIN:")); p.add(txtVIN);
-        p.add(new JLabel("Kilometraje:")); p.add(txtKm);
+        Object[] message = {
+                "Cliente:", comboCliente,
+                "Placas:", txtPlacas,
+                "Marca:", txtMarca,
+                "Modelo:", txtModelo,
+                "Año:", txtAnio,
+                "Color:", txtColor,
+                "VIN:", txtVIN
+        };
 
-        if (JOptionPane.showConfirmDialog(this, p, "Editar Vehículo", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            int idCliente = obtenerIdCliente((String) combo.getSelectedItem());
-            String sql = "UPDATE vehiculos SET id_cliente=?, placas=?, marca=?, modelo=?, año=?, color=?, vin=?, kilometraje_actual=? WHERE id_vehiculo=?";
-            Object anio = txtAnio.getText().trim().isEmpty() ? null : Integer.valueOf(txtAnio.getText().trim());
-            Object km = txtKm.getText().trim().isEmpty() ? null : Double.valueOf(txtKm.getText().trim());
+        int option = JOptionPane.showConfirmDialog(this, message, "Editar Vehículo", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            try {
+                String clienteSeleccionado = (String) comboCliente.getSelectedItem();
+                int nuevoIdCliente = Integer.parseInt(clienteSeleccionado.split(" - ")[0]);
+                String placas = txtPlacas.getText().trim();
+                String marca = txtMarca.getText().trim();
+                String modelo = txtModelo.getText().trim();
+                int anio = Integer.parseInt(txtAnio.getText().trim());
+                String color = txtColor.getText().trim();
+                String vin = txtVIN.getText().trim();
 
-            int r = DatabaseUtils.ejecutarUpdate(sql, idCliente, txtPlacas.getText().trim().toUpperCase(),
-                    txtMarca.getText().trim(), txtModelo.getText().trim(), anio, txtColor.getText().trim(),
-                    txtVIN.getText().trim().toUpperCase(), km, id);
-            if (r > 0) {
-                JOptionPane.showMessageDialog(this, "Vehículo actualizado.");
-                cargarDatosVehiculos();
+                if (placas.isEmpty() || marca.isEmpty() || modelo.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Placas, Marca y Modelo son obligatorios.", "Error de Validación", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                String sql = "UPDATE vehiculos SET id_cliente=?, placas=?, marca=?, modelo=?, año=?, color=?, vin=? WHERE id_vehiculo=?";
+                
+                if (DatabaseUtils.ejecutarUpdate(sql, nuevoIdCliente, placas, marca, modelo, anio, color, vin, idVehiculo) > 0) {
+                    JOptionPane.showMessageDialog(this, "Vehículo actualizado exitosamente.");
+                    cargarDatosVehiculos();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error al actualizar vehículo.", "Error DB", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this, "El campo Año debe ser un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -608,55 +714,98 @@ public class ClientesVehiculosPanel extends JPanel {
     private void eliminarVehiculo() {
         int fila = tablaVehiculos.getSelectedRow();
         if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un vehículo.");
+            JOptionPane.showMessageDialog(this, "Selecciona un vehículo para eliminar.");
             return;
         }
-        int id = (int) modeloVehiculos.getValueAt(fila, 0);
-        String desc = modeloVehiculos.getValueAt(fila, 2) + " " + modeloVehiculos.getValueAt(fila, 3) + " (" + modeloVehiculos.getValueAt(fila, 1) + ")";
 
-        if (JOptionPane.showConfirmDialog(this, "¿Eliminar el vehículo " + desc + " y sus servicios?", "Confirmar", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            int r = DatabaseUtils.ejecutarUpdate("DELETE FROM vehiculos WHERE id_vehiculo=?", id);
-            if (r > 0) {
-                JOptionPane.showMessageDialog(this, "Vehículo eliminado.");
+        int id = (int) modeloVehiculos.getValueAt(fila, 0);
+        String placas = (String) modeloVehiculos.getValueAt(fila, 2);
+
+        int confirmacion = JOptionPane.showConfirmDialog(this,
+                "¿Estás seguro de que deseas eliminar PERMANENTEMENTE el vehículo con placas " + placas + "?",
+                "Confirmar Eliminación de Vehículo", JOptionPane.YES_NO_OPTION);
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            // Corrección aplicada: Borrado físico (DELETE)
+            String sql = "DELETE FROM vehiculos WHERE id_vehiculo = ?";
+            
+            if (DatabaseUtils.ejecutarUpdate(sql, id) > 0) {
+                JOptionPane.showMessageDialog(this, "Vehículo eliminado exitosamente.");
                 cargarDatosVehiculos();
+            } else {
+                JOptionPane.showMessageDialog(this, "Error al eliminar el vehículo.", "Error DB", JOptionPane.ERROR_MESSAGE);
             }
         }
     }
 
-    private void verHistorialVehiculo() {
-        int fila = tablaVehiculos.getSelectedRow();
-        if (fila == -1) {
-            JOptionPane.showMessageDialog(this, "Selecciona un vehículo.");
-            return;
+    private int getIdClientePorNombre(String nombre) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        int id = -1;
+
+        try {
+            conn = DatabaseConnection.getConnection();
+            String sql = "SELECT id_cliente FROM clientes WHERE nombre = ?";
+            stmt = conn.prepareStatement(sql);
+            stmt.setString(1, nombre);
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                id = rs.getInt("id_cliente");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            DatabaseUtils.cerrarRecursos(conn, stmt, rs);
         }
-        String desc = modeloVehiculos.getValueAt(fila, 2) + " " + modeloVehiculos.getValueAt(fila, 3) + " - " + modeloVehiculos.getValueAt(fila, 1);
-        JOptionPane.showMessageDialog(this, "Historial de servicios para:\n" + desc + "\n\n(Aquí se mostrará el historial completo)", "Historial", JOptionPane.INFORMATION_MESSAGE);
+        return id;
     }
 
-    // ==================== MÉTODOS AUXILIARES ====================
-    private List<String> obtenerListaClientes() {
-        List<String> lista = new ArrayList<>();
-        String sql = "SELECT nombre FROM clientes WHERE estado = 'Activo' ORDER BY nombre";
-        try (var conn = DatabaseConnection.getConnection();
-             var ps = conn.prepareStatement(sql);
-             var rs = ps.executeQuery()) {
-            while (rs.next()) lista.add(rs.getString(1));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return lista;
+    private JButton crearBotonEstilizado(String texto, Color color) {
+        JButton button = new JButton(texto);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        button.setBackground(color);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorder(new EmptyBorder(8, 15, 8, 15));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.putClientProperty("JButton.buttonType", "roundRect"); 
+
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                button.setBackground(color.darker());
+            }
+
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                button.setBackground(color);
+            }
+        });
+
+        return button;
     }
 
-    private int obtenerIdCliente(String nombre) {
-        String sql = "SELECT id_cliente FROM clientes WHERE nombre = ?";
-        try (var conn = DatabaseConnection.getConnection();
-             var ps = conn.prepareStatement(sql)) {
-            ps.setString(1, nombre);
-            var rs = ps.executeQuery();
-            if (rs.next()) return rs.getInt(1);
-        } catch (Exception e) {
-            e.printStackTrace();
+    private void imprimirVista() {
+        JTable tablaAImprimir;
+        String tituloReporte;
+
+        if (pestañas.getSelectedIndex() == 0) {
+            tablaAImprimir = tablaClientes;
+            tituloReporte = "REPORTE DE CLIENTES";
+        } else {
+            tablaAImprimir = tablaVehiculos;
+            tituloReporte = "REPORTE DE VEHÍCULOS";
         }
-        return -1;
+
+        try {
+            MessageFormat header = new MessageFormat(tituloReporte + " - CASA DEL MOTOR");
+            MessageFormat footer = new MessageFormat("Fecha: " + new SimpleDateFormat("dd/MM/yyyy HH:mm").format(new Date()) + " - Página {0}");
+            
+            if (!tablaAImprimir.print(JTable.PrintMode.FIT_WIDTH, header, footer)) {
+                JOptionPane.showMessageDialog(this, "Impresión cancelada por el usuario", "Cancelado", JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (PrinterException e) {
+            JOptionPane.showMessageDialog(this, "Error al imprimir: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }

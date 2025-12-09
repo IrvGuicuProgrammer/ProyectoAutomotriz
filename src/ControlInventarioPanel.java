@@ -208,8 +208,6 @@ public class ControlInventarioPanel extends JPanel {
         botonRetirarStock.addActionListener(e -> salidaStock());
         botonEditar.addActionListener(e -> editarProducto());
         botonEliminar.addActionListener(e -> eliminarProducto());
-        
-        // --- ACCIÓN MODIFICADA ---
         botonReporte.addActionListener(e -> generarReporteStock());
 
         return panel;

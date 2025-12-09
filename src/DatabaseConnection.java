@@ -1,30 +1,16 @@
-// Archivo: DatabaseConnection.java
-
 import java.sql.*;
 import javax.swing.JOptionPane;
 
 public class DatabaseConnection {
-    // ---- INICIO DE CAMBIOS ----
-
-    // 1. CAMBIA "mariadb" POR "mysql" EN LA URL
     private static final String URL = "jdbc:mysql://localhost:3306/taller_automotriz?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-
-    // ---- FIN DE CAMBIOS ----
-
     private static final String USER = "root";
-    private static final String PASSWORD = "irving"; // Asegúrate que esta sea tu contraseña
+    private static final String PASSWORD = "irving"; 
 
     public static Connection getConnection() {
         try {
-            // ---- INICIO DE CAMBIOS ----
-
-            // 2. USA EL DRIVER DE MYSQL (el que corresponde a tu librería)
             Class.forName("com.mysql.cj.jdbc.Driver");
-
-            // ---- FIN DE CAMBIOS ----
-
             Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
-            System.out.println("✅ Conexión exitosa con MySQL"); // Mensaje actualizado
+            System.out.println("✅ Conexión exitosa con MySQL"); 
             return conn;
         } catch (ClassNotFoundException e) {
             JOptionPane.showMessageDialog(null,
@@ -41,7 +27,6 @@ public class DatabaseConnection {
         return null;
     }
 
-    // ... (el resto del archivo queda igual)
     public static boolean testConnection() {
         try (Connection conn = getConnection()) {
             if (conn != null && !conn.isClosed()) {

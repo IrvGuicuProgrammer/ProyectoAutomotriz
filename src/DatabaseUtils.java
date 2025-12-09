@@ -1,4 +1,3 @@
-
 // Archivo: DatabaseUtils.java
 import java.sql.*;
 import javax.swing.*;
@@ -6,7 +5,9 @@ import javax.swing.table.DefaultTableModel;
 
 public class DatabaseUtils {
 
-    public static void cerrarRecursos(Connection conn, PreparedStatement stmt, ResultSet rs) {
+    // CAMBIO REALIZADO: Se cambió 'PreparedStatement stmt' por 'Statement stmt'
+    // Esto permite cerrar tanto Statements normales como PreparedStatements.
+    public static void cerrarRecursos(Connection conn, Statement stmt, ResultSet rs) {
         try {
             if (rs != null)
                 rs.close();

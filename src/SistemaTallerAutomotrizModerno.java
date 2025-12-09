@@ -3,11 +3,14 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.io.File;
+import java.io.IOException; // Necesario para manejar errores de ejecución de comandos
 import java.awt.image.BufferedImage;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import org.mindrot.jbcrypt.BCrypt;
 
 public class SistemaTallerAutomotrizModerno {
@@ -15,12 +18,12 @@ public class SistemaTallerAutomotrizModerno {
     private JPanel mainPanel;
     private CardLayout cardLayout;
     private String usuarioActual;
+    private String rolUsuarioActual; 
     private boolean isMaximized = false;
     private Point initialClick;
     private Rectangle originalBounds;
 
     public static void main(String[] args) {
-        // Probar conexión primero
         if (!DatabaseConnection.testConnection()) {
             JOptionPane.showMessageDialog(null,
                     "No se pudo conectar a la base de datos.\nVerifica que MySQL esté ejecutándose.",
@@ -40,7 +43,6 @@ public class SistemaTallerAutomotrizModerno {
             e.printStackTrace();
         }
 
-        // Configuración de la ventana principal
         frame = new JFrame();
         frame.setTitle("La Casa del Motor - Sistema de Gestión Integral");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -49,17 +51,15 @@ public class SistemaTallerAutomotrizModerno {
         frame.setUndecorated(true);
         frame.setShape(new RoundRectangle2D.Double(0, 0, 1200, 800, 20, 20));
 
-        // Guardar tamaño original
         originalBounds = new Rectangle(1200, 800);
 
-        // Configuración del layout de tarjetas
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
         mainPanel.setBackground(new Color(245, 247, 250));
 
-        // Crear los paneles
         JPanel loginPanel = crearPanelLoginModerno();
         JPanel mainMenuPanel = crearPanelMenuPrincipalModerno();
+        
         mainPanel.add(loginPanel, "Login");
         mainPanel.add(mainMenuPanel, "MainMenu");
 
@@ -72,9 +72,8 @@ public class SistemaTallerAutomotrizModerno {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(245, 247, 250));
 
-        // Panel izquierdo con color sólido
         JPanel leftPanel = new JPanel(new BorderLayout());
-        leftPanel.setBackground(new Color(36, 71, 133)); // #244785
+        leftPanel.setBackground(new Color(36, 71, 133)); 
         leftPanel.setPreferredSize(new Dimension(400, 0));
 
         try {
@@ -83,54 +82,24 @@ public class SistemaTallerAutomotrizModerno {
 
             if (logoFile.exists()) {
                 ImageIcon originalIcon = new ImageIcon(logoPath);
-
-                // Escalar a tamaño razonable
                 Image imagenEscalada = originalIcon.getImage().getScaledInstance(450, 300, Image.SCALE_SMOOTH);
                 ImageIcon iconoEscalado = new ImageIcon(imagenEscalada);
-
                 JLabel logoLabel = new JLabel(iconoEscalado);
                 logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
                 logoLabel.setVerticalAlignment(SwingConstants.CENTER);
                 logoLabel.setBorder(new EmptyBorder(40, 20, 40, 20));
-
                 leftPanel.add(logoLabel, BorderLayout.CENTER);
-
             } else {
                 JLabel titulo = new JLabel("LA CASA DEL MOTOR");
                 titulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
                 titulo.setForeground(Color.WHITE);
                 titulo.setHorizontalAlignment(SwingConstants.CENTER);
-                titulo.setBorder(new EmptyBorder(100, 50, 0, 50));
-                leftPanel.add(titulo, BorderLayout.NORTH);
-
-                JPanel iconPanel = new JPanel() {
-                    @Override
-                    protected void paintComponent(Graphics g) {
-                        super.paintComponent(g);
-                        Graphics2D g2d = (Graphics2D) g;
-                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                        g2d.setColor(Color.WHITE);
-                        g2d.fillRoundRect(50, 50, 200, 100, 20, 20);
-                        g2d.setColor(new Color(36, 71, 133));
-                        g2d.fillOval(70, 100, 40, 40);
-                        g2d.fillOval(190, 100, 40, 40);
-                    }
-                };
-                iconPanel.setOpaque(false);
-                iconPanel.setPreferredSize(new Dimension(300, 200));
-                leftPanel.add(iconPanel, BorderLayout.CENTER);
+                leftPanel.add(titulo, BorderLayout.CENTER);
             }
         } catch (Exception e) {
             e.printStackTrace();
-            JLabel titulo = new JLabel("LA CASA DEL MOTOR");
-            titulo.setFont(new Font("Segoe UI", Font.BOLD, 24));
-            titulo.setForeground(Color.WHITE);
-            titulo.setHorizontalAlignment(SwingConstants.CENTER);
-            leftPanel.add(titulo, BorderLayout.CENTER);
         }
 
-        // Panel derecho con formulario
         JPanel rightPanel = new JPanel(new GridBagLayout());
         rightPanel.setBackground(Color.WHITE);
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -181,7 +150,6 @@ public class SistemaTallerAutomotrizModerno {
         gbc.gridy = 4;
         rightPanel.add(passLabel, gbc);
 
-        // Panel para contraseña con botón de mostrar/ocultar
         JPanel passwordPanel = new JPanel(new BorderLayout());
         passwordPanel.setBackground(Color.WHITE);
         
@@ -191,26 +159,18 @@ public class SistemaTallerAutomotrizModerno {
                 BorderFactory.createLineBorder(new Color(220, 220, 220)),
                 new EmptyBorder(12, 15, 12, 15)));
         
-        // Botón para mostrar/ocultar contraseña con imágenes
-        JButton togglePasswordBtn = new JButton();
+        JButton togglePasswordBtn = new JButton("👁");
         togglePasswordBtn.setPreferredSize(new Dimension(40, 40));
         togglePasswordBtn.setBackground(Color.WHITE);
         togglePasswordBtn.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         togglePasswordBtn.setFocusPainted(false);
         togglePasswordBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
-        // Cargar imágenes para el botón (reemplaza estas rutas con las tuyas)
         ImageIcon iconoOjoAbierto = cargarYEscalarImagen("C:\\Users\\irvin\\Documents\\VisualStudioCode\\Automotriz\\ojo_abierto.png", 20, 20);
         ImageIcon iconoOjoCerrado = cargarYEscalarImagen("C:\\Users\\irvin\\Documents\\VisualStudioCode\\Automotriz\\ojo_cerrado.png", 20, 20);
         
-        // Si no se cargan las imágenes, usar texto como fallback
-        if (iconoOjoAbierto == null || iconoOjoCerrado == null) {
-            togglePasswordBtn.setText("👁");
-        } else {
-            togglePasswordBtn.setIcon(iconoOjoCerrado);
-        }
+        if (iconoOjoCerrado != null) togglePasswordBtn.setIcon(iconoOjoCerrado);
         
-        // Agregar componentes al panel de contraseña
         passwordPanel.add(passField, BorderLayout.CENTER);
         passwordPanel.add(togglePasswordBtn, BorderLayout.EAST);
         
@@ -252,33 +212,22 @@ public class SistemaTallerAutomotrizModerno {
         panel.add(leftPanel, BorderLayout.WEST);
         panel.add(rightPanel, BorderLayout.CENTER);
 
-        // Acción para mostrar/ocultar contraseña
         togglePasswordBtn.addActionListener(e -> {
-            if (passField.getEchoChar() == '\u2022') { // Si está oculta
-                passField.setEchoChar((char) 0); // Mostrar texto
-                if (iconoOjoAbierto != null) {
-                    togglePasswordBtn.setIcon(iconoOjoAbierto);
-                    togglePasswordBtn.setText("");
-                } else {
-                    togglePasswordBtn.setText("🙈");
-                }
+            if (passField.getEchoChar() == '\u2022') {
+                passField.setEchoChar((char) 0);
+                if (iconoOjoAbierto != null) togglePasswordBtn.setIcon(iconoOjoAbierto);
             } else {
-                passField.setEchoChar('\u2022'); // Ocultar texto
-                if (iconoOjoCerrado != null) {
-                    togglePasswordBtn.setIcon(iconoOjoCerrado);
-                    togglePasswordBtn.setText("");
-                } else {
-                    togglePasswordBtn.setText("👁");
-                }
+                passField.setEchoChar('\u2022');
+                if (iconoOjoCerrado != null) togglePasswordBtn.setIcon(iconoOjoCerrado);
             }
         });
 
-        // Acciones de los botones
         loginButton.addActionListener(e -> {
             String usuario = userField.getText();
             String contrasena = new String(passField.getPassword());
             if (validarCredenciales(usuario, contrasena)) {
                 usuarioActual = usuario;
+                mainPanel.add(crearPanelMenuPrincipalModerno(), "MainMenu");
                 cardLayout.show(mainPanel, "MainMenu");
             } else {
                 JOptionPane.showMessageDialog(frame, "Credenciales incorrectas. Por favor verifique sus datos.",
@@ -291,7 +240,6 @@ public class SistemaTallerAutomotrizModerno {
         return panel;
     }
 
-    // Método para cargar y escalar imágenes
     private ImageIcon cargarYEscalarImagen(String ruta, int ancho, int alto) {
         try {
             File archivoImagen = new File(ruta);
@@ -299,21 +247,17 @@ public class SistemaTallerAutomotrizModerno {
                 ImageIcon iconoOriginal = new ImageIcon(ruta);
                 Image imagenEscalada = iconoOriginal.getImage().getScaledInstance(ancho, alto, Image.SCALE_SMOOTH);
                 return new ImageIcon(imagenEscalada);
-            } else {
-                System.out.println("No se encontró la imagen: " + ruta);
-                return null;
             }
         } catch (Exception e) {
-            System.out.println("Error al cargar la imagen: " + ruta + " - " + e.getMessage());
-            return null;
+            e.printStackTrace();
         }
+        return null;
     }
 
     private JPanel crearPanelMenuPrincipalModerno() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(new Color(36, 71, 133)); // Cambiado al mismo azul del inicio (#244785)
+        panel.setBackground(new Color(36, 71, 133));
 
-        // Barra superior
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setBackground(Color.WHITE);
         topBar.setBorder(BorderFactory.createCompoundBorder(
@@ -331,10 +275,8 @@ public class SistemaTallerAutomotrizModerno {
             public void mouseDragged(MouseEvent e) {
                 int thisX = frame.getLocation().x;
                 int thisY = frame.getLocation().y;
-
                 int xMoved = e.getX() - initialClick.x;
                 int yMoved = e.getY() - initialClick.y;
-
                 int X = thisX + xMoved;
                 int Y = thisY + yMoved;
                 frame.setLocation(X, Y);
@@ -358,9 +300,38 @@ public class SistemaTallerAutomotrizModerno {
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         controlPanel.setBackground(Color.WHITE);
         controlPanel.setOpaque(false);
-        JLabel userLabel = new JLabel("Usuario: " + (usuarioActual != null ? usuarioActual : "Administrador"));
+        
+        String infoUsuario = (usuarioActual != null ? usuarioActual : "Admin");
+        if (rolUsuarioActual != null) {
+            infoUsuario += " (" + rolUsuarioActual + ")";
+        }
+        JLabel userLabel = new JLabel("Usuario: " + infoUsuario);
         userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         userLabel.setForeground(new Color(100, 100, 100));
+        userLabel.setBorder(new EmptyBorder(0, 0, 0, 10));
+
+        // --- BOTÓN NUEVO: RESPALDO DE BASE DE DATOS ---
+        JButton backupBtn = new JButton("Respaldo BD");
+        backupBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        backupBtn.setForeground(new Color(30, 60, 114));
+        backupBtn.setBackground(new Color(240, 240, 240));
+        backupBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                new EmptyBorder(5, 10, 5, 10)));
+        backupBtn.setFocusPainted(false);
+        backupBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        backupBtn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                backupBtn.setBackground(new Color(230, 230, 230));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                backupBtn.setBackground(new Color(240, 240, 240));
+            }
+        });
+
+        backupBtn.addActionListener(e -> realizarRespaldoBD());
+        // ----------------------------------------------
 
         JButton logoutBtn = new JButton("Cerrar Sesión");
         logoutBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -376,7 +347,6 @@ public class SistemaTallerAutomotrizModerno {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 logoutBtn.setBackground(new Color(230, 230, 230));
             }
-
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 logoutBtn.setBackground(new Color(240, 240, 240));
             }
@@ -390,11 +360,13 @@ public class SistemaTallerAutomotrizModerno {
         estiloBotonControl(maximizeBtn);
         estiloBotonControl(closeBtn);
 
-        if (isMaximized) {
-            maximizeBtn.setBackground(new Color(200, 200, 200));
-        }
-
         controlPanel.add(userLabel);
+        
+        // Agregar botón de respaldo solo si NO es empleado
+        if (!"Empleado".equalsIgnoreCase(rolUsuarioActual)) {
+            controlPanel.add(backupBtn);
+        }
+        
         controlPanel.add(logoutBtn);
         controlPanel.add(minimizeBtn);
         controlPanel.add(maximizeBtn);
@@ -404,20 +376,18 @@ public class SistemaTallerAutomotrizModerno {
         topBar.add(controlPanel, BorderLayout.EAST);
 
         JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(new Color(36, 71, 133)); // Fondo azul
+        contentPanel.setBackground(new Color(36, 71, 133));
         contentPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
 
         JLabel welcomeTitle = new JLabel("Panel de Control Principal");
         welcomeTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        welcomeTitle.setForeground(Color.WHITE); // Cambiado a blanco
+        welcomeTitle.setForeground(Color.WHITE);
         welcomeTitle.setBorder(new EmptyBorder(0, 0, 20, 0));
         contentPanel.add(welcomeTitle, BorderLayout.NORTH);
 
-        // MODIFICACIÓN: Grid 2x3 en lugar de 3x3 (quitamos 3 módulos)
         JPanel modulesPanel = new JPanel(new GridLayout(2, 3, 20, 20));
-        modulesPanel.setBackground(new Color(36, 71, 133)); // Fondo azul
+        modulesPanel.setBackground(new Color(36, 71, 133));
 
-        // Solo los 6 módulos esenciales
         String[][] modulos = {
                 {"👥", "Gestión de Usuarios", "Administrar usuarios y permisos del sistema"},
                 {"🚗", "Clientes y Vehículos", "Registro y gestión de clientes y vehículos"},
@@ -425,10 +395,15 @@ public class SistemaTallerAutomotrizModerno {
                 {"📦", "Control de Inventario", "Gestión de refacciones y stock disponible"},
                 {"🧾", "Facturación Automatizada", "Generación de facturas en PDF"},
                 {"📊", "Historial y Consultas", "Consultas avanzadas y reportes históricos"}
-                // Se quitaron: Generar Reportes, Respaldos y Mantenimiento, Configuración
         };
 
         for (String[] modulo : modulos) {
+            if ("Empleado".equalsIgnoreCase(rolUsuarioActual)) {
+                if (modulo[1].equals("Gestión de Usuarios") || 
+                    modulo[1].equals("Historial y Consultas")) {
+                    continue; 
+                }
+            }
             modulesPanel.add(crearTarjetaModulo(modulo[0], modulo[1], modulo[2]));
         }
 
@@ -441,7 +416,6 @@ public class SistemaTallerAutomotrizModerno {
         maximizeBtn.addActionListener(e -> toggleMaximize());
         closeBtn.addActionListener(e -> System.exit(0));
 
-        // MODIFICACIÓN: Limpiar campos al cerrar sesión
         logoutBtn.addActionListener(e -> {
             int confirmacion = JOptionPane.showConfirmDialog(
                     frame,
@@ -451,15 +425,90 @@ public class SistemaTallerAutomotrizModerno {
                     JOptionPane.QUESTION_MESSAGE);
             if (confirmacion == JOptionPane.YES_OPTION) {
                 usuarioActual = null;
-                
-                // Limpiar los campos del login
+                rolUsuarioActual = null;
                 limpiarCamposLogin();
-                
                 cardLayout.show(mainPanel, "Login");
             }
         });
 
         return panel;
+    }
+
+    private void realizarRespaldoBD() {
+        // =========================================================================
+        // 1. CONFIGURACIÓN DE BASE DE DATOS (AJUSTAR ESTOS VALORES)
+        // =========================================================================
+        final String DB_USER = "root"; 
+        final String DB_PASS = "tu_contrasena_mysql_aqui"; // CAMBIAR a tu contraseña real
+        final String DB_NAME = "taller_automotriz"; // CAMBIAR al nombre de tu BD
+        
+        // 2. RUTA DE MYSQLDUMP (AJUSTAR si no está en el PATH)
+        // Descomentar y ajustar la línea de abajo si al ejecutar da error de "mysqldump no encontrado"
+        // final String MYSQL_DUMP_PATH = "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump";
+        final String MYSQL_DUMP_PATH = "mysqldump"; // Asume que mysqldump está en la variable PATH
+
+        // 3. Seleccionar Directorio de Destino
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Seleccionar Directorio de Destino para el Respaldo");
+        fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        if (fileChooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
+            JOptionPane.showMessageDialog(frame, "Respaldo cancelado por el usuario.", "Cancelado", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String rutaDestino = fileChooser.getSelectedFile().getAbsolutePath();
+        String fecha = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String nombreArchivo = DB_NAME + "_respaldo_" + fecha + ".sql";
+        String rutaCompletaArchivo = rutaDestino + File.separator + nombreArchivo;
+
+        try {
+            // 4. Construir el Comando de Respaldo
+            String comando;
+            if (DB_PASS == null || DB_PASS.isEmpty()) {
+                // Comando sin contraseña (no recomendado)
+                comando = String.format("%s -u %s %s -r \"%s\"",
+                    MYSQL_DUMP_PATH, DB_USER, DB_NAME, rutaCompletaArchivo);
+            } else {
+                // Comando con contraseña (se usa -p[password] sin espacio)
+                comando = String.format("%s -u %s -p%s %s -r \"%s\"",
+                    MYSQL_DUMP_PATH, DB_USER, DB_PASS, DB_NAME, rutaCompletaArchivo);
+            }
+
+            // 5. Ejecutar el Comando
+            Process proceso = Runtime.getRuntime().exec(comando);
+
+            int exitCode = proceso.waitFor();
+
+            if (exitCode == 0) {
+                JOptionPane.showMessageDialog(frame, 
+                    "✅ Respaldo de la base de datos **" + DB_NAME + "** completado exitosamente.\n" +
+                    "Archivo: **" + nombreArchivo + "**\n" +
+                    "Ubicación: " + rutaDestino,
+                    "Respaldo Exitoso", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(frame, 
+                    "❌ Error (" + exitCode + ") al realizar el respaldo.\n" +
+                    "Verifique: 1) Usuario/Contraseña de MySQL. 2) Nombre de la BD.\n" +
+                    "Asegúrese de que el usuario tenga permisos de DUMP.", 
+                    "Error en el Respaldo", JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (IOException e) {
+            // Indica que el comando mysqldump no se encontró (Problema de PATH)
+            JOptionPane.showMessageDialog(frame, 
+                "❌ Error de Ejecución: El programa 'mysqldump' no se encontró.\n" +
+                "Asegúrate de que MySQL esté instalado y **MYSQL_DUMP_PATH** esté configurado correctamente.", 
+                "Error de Archivo/Ruta", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            JOptionPane.showMessageDialog(frame, "❌ El proceso de respaldo fue interrumpido.", "Error", JOptionPane.ERROR_MESSAGE);
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(frame, "❌ Ocurrió un error inesperado durante el respaldo: " + e.getMessage(), "Error General", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     }
 
     private void toggleMaximize() {
@@ -488,19 +537,18 @@ public class SistemaTallerAutomotrizModerno {
                 new EmptyBorder(20, 20, 20, 20)));
         card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // RESTAURADO: Efecto de borde al pasar el mouse
         card.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 card.setBackground(new Color(250, 250, 250));
                 card.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(30, 60, 114), 2), // Borde azul de 2px
+                        BorderFactory.createLineBorder(new Color(30, 60, 114), 2), 
                         new EmptyBorder(20, 20, 20, 20)));
             }
 
             public void mouseExited(java.awt.event.MouseEvent evt) {
                 card.setBackground(Color.WHITE);
                 card.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(240, 240, 240)), // Borde gris claro
+                        BorderFactory.createLineBorder(new Color(240, 240, 240)), 
                         new EmptyBorder(20, 20, 20, 20)));
             }
         });
@@ -573,9 +621,7 @@ public class SistemaTallerAutomotrizModerno {
         });
     }
 
-    // NUEVO MÉTODO: Limpiar campos de login
     private void limpiarCamposLogin() {
-        // Buscar y limpiar los campos del panel de login
         Component[] components = mainPanel.getComponents();
         for (Component comp : components) {
             if (comp instanceof JPanel) {
@@ -589,24 +635,19 @@ public class SistemaTallerAutomotrizModerno {
         Component[] components = panel.getComponents();
         for (Component comp : components) {
             if (comp instanceof JTextField) {
-                // Limpiar campo de usuario
                 ((JTextField) comp).setText("");
             } else if (comp instanceof JPasswordField) {
-                // Limpiar campo de contraseña
                 ((JPasswordField) comp).setText("");
             } else if (comp instanceof JPanel) {
-                // Buscar recursivamente en sub-paneles
                 limpiarCamposEnPanel((JPanel) comp);
             }
         }
     }
 
-    // MÉTODOS PARA ABRIR MÓDULOS (solo los esenciales)
     private void abrirModuloUsuarios() {
         JPanel panelContenedor = crearPanelContenedorConVolver();
         GestionUsuariosPanel panelUsuarios = new GestionUsuariosPanel();
         panelContenedor.add(panelUsuarios, BorderLayout.CENTER);
-
         mainPanel.add(panelContenedor, "GestionUsuarios");
         cardLayout.show(mainPanel, "GestionUsuarios");
     }
@@ -615,7 +656,6 @@ public class SistemaTallerAutomotrizModerno {
         JPanel panelContenedor = crearPanelContenedorConVolver();
         ClientesVehiculosPanel panelClientesVehiculos = new ClientesVehiculosPanel();
         panelContenedor.add(panelClientesVehiculos, BorderLayout.CENTER);
-
         mainPanel.add(panelContenedor, "ClientesVehiculos");
         cardLayout.show(mainPanel, "ClientesVehiculos");
     }
@@ -624,7 +664,6 @@ public class SistemaTallerAutomotrizModerno {
         JPanel panelContenedor = crearPanelContenedorConVolver();
         GestionServiciosPanel panelServicios = new GestionServiciosPanel();
         panelContenedor.add(panelServicios, BorderLayout.CENTER);
-
         mainPanel.add(panelContenedor, "GestionServicios");
         cardLayout.show(mainPanel, "GestionServicios");
     }
@@ -633,7 +672,6 @@ public class SistemaTallerAutomotrizModerno {
         JPanel panelContenedor = crearPanelContenedorConVolver();
         ControlInventarioPanel panelInventario = new ControlInventarioPanel();
         panelContenedor.add(panelInventario, BorderLayout.CENTER);
-
         mainPanel.add(panelContenedor, "ControlInventario");
         cardLayout.show(mainPanel, "ControlInventario");
     }
@@ -642,7 +680,6 @@ public class SistemaTallerAutomotrizModerno {
         JPanel panelContenedor = crearPanelContenedorConVolver();
         FacturacionAutomatizadaPanel panelFacturacion = new FacturacionAutomatizadaPanel();
         panelContenedor.add(panelFacturacion, BorderLayout.CENTER);
-
         mainPanel.add(panelContenedor, "FacturacionAutomatizada");
         cardLayout.show(mainPanel, "FacturacionAutomatizada");
     }
@@ -651,7 +688,6 @@ public class SistemaTallerAutomotrizModerno {
         JPanel panelContenedor = crearPanelContenedorConVolver();
         HistorialConsultasPanel panelHistorial = new HistorialConsultasPanel();
         panelContenedor.add(panelHistorial, BorderLayout.CENTER);
-
         mainPanel.add(panelContenedor, "HistorialConsultas");
         cardLayout.show(mainPanel, "HistorialConsultas");
     }
@@ -688,8 +724,7 @@ public class SistemaTallerAutomotrizModerno {
 
         try {
             conn = DatabaseConnection.getConnection();
-            // Obtener el hash de la contraseña para el usuario activo
-            String sql = "SELECT id_usuario, contrasena FROM usuarios WHERE usuario = ? AND estado = 'Activo'";
+            String sql = "SELECT id_usuario, contrasena, rol FROM usuarios WHERE usuario = ? AND estado = 'Activo'";
             stmt = conn.prepareStatement(sql);
             stmt.setString(1, usuario);
 
@@ -698,30 +733,31 @@ public class SistemaTallerAutomotrizModerno {
             if (rs.next()) {
                 String hash = rs.getString("contrasena");
                 int idUsuario = rs.getInt("id_usuario");
+                String rolBD = rs.getString("rol"); 
 
-                // Verificar con bcrypt cuando el hash está en formato bcrypt
+                boolean esValido = false;
+
                 try {
                     if (hash != null
                             && (hash.startsWith("$2a$") || hash.startsWith("$2y$") || hash.startsWith("$2b$"))) {
                         if (BCrypt.checkpw(contrasena, hash)) {
-                            actualizarUltimoAcceso(idUsuario);
-                            return true;
+                            esValido = true;
                         }
                     } else {
-                        // Fallback: si la contraseña en BD no está en formato bcrypt,
-                        // comparar texto plano (soporte para datos legacy).
                         if (hash != null && hash.equals(contrasena)) {
-                            actualizarUltimoAcceso(idUsuario);
-                            return true;
+                            esValido = true;
                         }
                     }
                 } catch (IllegalArgumentException iae) {
-                    // Si el hash tiene un formato inválido para jBCrypt, intentar fallback a
-                    // comparación directa
                     if (hash != null && hash.equals(contrasena)) {
-                        actualizarUltimoAcceso(idUsuario);
-                        return true;
+                        esValido = true;
                     }
+                }
+
+                if (esValido) {
+                    actualizarUltimoAcceso(idUsuario);
+                    this.rolUsuarioActual = rolBD; 
+                    return true;
                 }
             }
         } catch (SQLException e) {

@@ -250,9 +250,6 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         return boton;
     }
 
-    // ==================== FUNCIONES PRINCIPALES ====================
-
-    // --- GENERAR PDF ---
     private void generarPDF() {
         int filaSeleccionada = tablaFacturas.getSelectedRow();
         if (filaSeleccionada == -1) {
@@ -281,7 +278,6 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         }
     }
 
-    // --- EDITAR FACTURA ---
     private void editarFactura() {
         int filaSeleccionada = tablaFacturas.getSelectedRow();
         if (filaSeleccionada == -1) {
@@ -340,7 +336,6 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         }
     }
 
-    // --- NUEVO MÉTODO: CAMBIAR ESTADO FACTURA ---
     private void cambiarEstadoFactura() {
         int fila = tablaFacturas.getSelectedRow();
         if (fila == -1) {
@@ -375,7 +370,6 @@ public class FacturacionAutomatizadaPanel extends JPanel {
         }
     }
 
-    // --- REPORTE DE VENTAS ---
     private void generarReporteVentas() {
         mostrarDialogoReporteVentas();
         registrarLogSistema("INFO", "Reporte de ventas visualizado.");
@@ -441,8 +435,6 @@ public class FacturacionAutomatizadaPanel extends JPanel {
 
         dialogoReporte.setVisible(true);
     }
-
-    // ==================== MÉTODOS DE DATOS ====================
 
     private void cargarDatosFacturas() {
         String query = "SELECT f.id_factura, f.numero_factura, c.nombre as cliente, " +
@@ -561,8 +553,6 @@ public class FacturacionAutomatizadaPanel extends JPanel {
             cargarDatosFacturas();
         }
     }
-
-    // ==================== MÉTODOS AUXILIARES DB ====================
 
     private java.util.List<String> obtenerServiciosSinFactura() {
         java.util.List<String> list = new java.util.ArrayList<>();

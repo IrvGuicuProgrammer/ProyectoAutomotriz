@@ -2,8 +2,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-
-// Importación de jBCrypt (asegúrate de tener la librería en tu classpath)
 import org.mindrot.jbcrypt.BCrypt;
 
 public class GestionUsuariosPanel extends JPanel {
@@ -176,8 +174,6 @@ public class GestionUsuariosPanel extends JPanel {
 
         return boton;
     }
-
-    // --- Métodos de Lógica ---
 
     private void cargarDatosUsuarios() {
         String query = "SELECT id_usuario, usuario, nombre_completo, rol, email, estado, " +
